@@ -120,6 +120,7 @@ namespace SecureEscape.Api.Data
             };
 
             await context.Users.AddRangeAsync(user1, user2, user3, user4, user5);
+            static string Hash(string value) => BCrypt.Net.BCrypt.HashPassword(value);
 
             // ── AUTH CREDENTIALS ───────────────────────────────────────────
             await context.AuthCredentials.AddRangeAsync(

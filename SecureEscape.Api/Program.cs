@@ -45,7 +45,7 @@ var connString = builder.Configuration.GetConnectionString("default");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("default"),
-        new MySqlServerVersion(new Version(8, 0, 21))
+        new MySqlServerVersion(new Version(8, 0, 46))
     ));
 
 
@@ -110,6 +110,9 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+ 
+    await context.Database.MigrateAsync();
+ 
     await DbSeeder.SeedAsync(context);
 }
 
