@@ -269,7 +269,7 @@ SecureEscape.Api.Tests
 
 The test suite uses xUnit and Moq.
 
-The Sprint 5–6 automated test suite contains 10 backend tests covering important Secure Escape and fraud investigation behaviour.
+The Sprint 7–6 automated test suite contains 10 backend tests covering important Secure Escape and fraud investigation behaviour.
 
 Run the automated tests from the root of the repository:
 
@@ -277,7 +277,7 @@ Run the automated tests from the root of the repository:
 dotnet test .\SecureEscape.Api.Tests\SecureEscape.Api.Tests.csproj
 ```
 
-The completed Sprint 5–6 test run produced:
+The completed Sprint 7–6 test run produced:
 
 ```text
 Total tests: 10
@@ -326,7 +326,7 @@ If the fraud manager rejects the report, the case returns to the investigation s
 
 ## Main MVP Features
 
-The Sprint 5–6 MVP includes:
+The Sprint 7–6 MVP includes:
 
 1. Customer authentication
 2. Secure Escape configuration
@@ -364,7 +364,7 @@ Protected endpoints use JWT authentication and role-based authorisation where re
 
 ## Testing Evidence
 
-Sprint 5–6 testing evidence is stored in the project documentation.
+Sprint 7–6 testing evidence is stored in the project documentation.
 
 The evidence includes:
 
@@ -409,8 +409,11 @@ npm start
 
 Make sure the MySQL database is reachable and that the dashboard and mobile application are configured to use the correct backend API address.
 
-## Sprint 5–6 MVP
+## Sprint 7–6 MVP
 
-This repository contains the Secure Escape Sprint 5–6 MVP submission.
+This repository contains the Secure Escape Sprint 7–6 MVP submission.
 
 The submission includes the working application source code, backend API, database integration, Entity Framework Core migrations, seed data, automated tests, test results, code coverage evidence, bug-fixing evidence, regression testing and GitHub version-control evidence.
+
+
+

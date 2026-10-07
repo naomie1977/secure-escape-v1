@@ -15,6 +15,9 @@ namespace SecureEscape.Api.Data
                 return;
             }
 
+            static string Hash(string value) =>
+                BCrypt.Net.BCrypt.HashPassword(value);
+
             // BANK INTEGRATIONS
             var zenithBank = new BankIntegration
             {
@@ -44,7 +47,7 @@ namespace SecureEscape.Api.Data
                 Id = Guid.Parse("b1000000-0000-0000-0000-000000000001"),
                 BankIntegrationId = zenithBank.Id,
                 ClientId = "zenith-mobile-app",
-                ClientSecretHash = "zenith-secret-plain-text",
+                ClientSecretHash = Hash(Guid.NewGuid().ToString("N")),
                 Scopes = "banking:read banking:write escape:trigger",
                 Status = ApiClientStatus.Active,
                 CreatedAt = DateTime.UtcNow
@@ -55,7 +58,7 @@ namespace SecureEscape.Api.Data
                 Id = Guid.Parse("b2000000-0000-0000-0000-000000000002"),
                 BankIntegrationId = savannaBank.Id,
                 ClientId = "savanna-mobile-app",
-                ClientSecretHash = "savanna-secret-plain-text",
+                ClientSecretHash = Hash(Guid.NewGuid().ToString("N")),
                 Scopes = "banking:read banking:write escape:trigger",
                 Status = ApiClientStatus.Active,
                 CreatedAt = DateTime.UtcNow
@@ -134,9 +137,6 @@ namespace SecureEscape.Api.Data
                 user4,
                 user5
             );
-
-            static string Hash(string value) =>
-                BCrypt.Net.BCrypt.HashPassword(value);
 
             // AUTH CREDENTIALS
             await context.AuthCredentials.AddRangeAsync(

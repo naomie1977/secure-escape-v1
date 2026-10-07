@@ -8,19 +8,20 @@
     "scheme": "secureescapemobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Secure Escape uses Face ID to verify your identity as a second authentication factor.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.secureescape.app"
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.READ_CONTACTS",
-        "android.permission.WRITE_CONTACTS"
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ],
       "package": "com.secureescape.app"
     },
@@ -49,6 +50,12 @@
           "contactsPermission": "Allow Secure Escape to access your contacts so you can add emergency contacts."
         }
       ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Secure Escape to use Face ID to verify your identity as a second authentication factor."
+        }
+      ],
       "expo-font",
       "expo-image",
       "expo-status-bar",
@@ -62,8 +69,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c1215499-653d-4efa-9d11-a258458df4f4"
+        "projectId": "64d5147c-d9d8-43fb-982b-0196cb664c0c"
       }
-    }
+    },
+    "owner": "morena00"
   }
 }

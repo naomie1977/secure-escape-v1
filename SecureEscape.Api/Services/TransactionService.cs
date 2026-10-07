@@ -2,7 +2,6 @@ using SecureEscape.Api.DTOs.Request;
 using SecureEscape.Api.DTOs.Response;
 using SecureEscape.Api.Enums;
 using SecureEscape.Api.Interfaces;
-using SecureEscape.Api.Migrations;
 using SecureEscape.Api.Models;
 
 namespace SecureEscape.Api.Services;
@@ -17,11 +16,8 @@ public class TransactionService : ITransactionService
     private readonly IAuditService _auditService;
     private readonly IAlertRepository _alertRepository;
     private readonly IRiskEvaluationRepository _riskEvaluationRepository;
-    private readonly INotificationAttemptRepository _notificationAttemptRepository;
-    private readonly IEmergencyContactRepository _emergencyContactRepository;
     private readonly IRiskService _riskService;
     private readonly IFraudReportingService _fraudReportingService;
-    private readonly ILocationEventRepository _locationEventRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public TransactionService(
@@ -33,11 +29,8 @@ public class TransactionService : ITransactionService
         IAuditService auditService,
         IAlertRepository alertRepository,
         IRiskEvaluationRepository riskEvaluationRepository,
-        INotificationAttemptRepository notificationAttemptRepository,
-        IEmergencyContactRepository emergencyContactRepository,
         IRiskService riskService,
         IFraudReportingService fraudReportingService,
-        ILocationEventRepository locationEventRepository,
         IUnitOfWork unitOfWork)
     {
         _transactionRepository = transactionRepository;
@@ -48,10 +41,7 @@ public class TransactionService : ITransactionService
         _auditService = auditService;
         _alertRepository = alertRepository;
         _riskEvaluationRepository = riskEvaluationRepository;
-        _notificationAttemptRepository = notificationAttemptRepository;
-        _emergencyContactRepository = emergencyContactRepository;
         _riskService = riskService;
-        _locationEventRepository = locationEventRepository;
         _fraudReportingService = fraudReportingService;
         _unitOfWork = unitOfWork;
     }
@@ -59,8 +49,10 @@ public class TransactionService : ITransactionService
     public async Task<List<TransactionResponseDto>> GetAllAsync()
     {
         var currentUser = _currentUserService.GetCurrentUser();
+
         var transactions =
-            await _transactionRepository.GetByUserIdAsync(currentUser.UserId);
+            await _transactionRepository.GetByUserIdAsync(
+                currentUser.UserId);
 
         return transactions.Select(MapToResponse).ToList();
     }
@@ -70,25 +62,36 @@ public class TransactionService : ITransactionService
     {
         var currentUser = _currentUserService.GetCurrentUser();
 
-        var account = await _bankAccountRepository.GetByIdForUserAsync(
-            request.BankAccountId,
-            currentUser.UserId);
+        var account =
+            await _bankAccountRepository.GetByIdForUserAsync(
+                request.BankAccountId,
+                currentUser.UserId);
 
         if (account == null)
-            throw new InvalidOperationException("Account not found.");
+        {
+            throw new InvalidOperationException(
+                "Account not found.");
+        }
 
         Beneficiary? beneficiary = null;
 
-        var hasSavedBeneficiary = request.BeneficiaryId.HasValue;
+        var hasSavedBeneficiary =
+            request.BeneficiaryId.HasValue;
 
         var hasAnyOnceOffRecipientDetails =
-            !string.IsNullOrWhiteSpace(request.RecipientName) ||
-            !string.IsNullOrWhiteSpace(request.RecipientBank) ||
-            !string.IsNullOrWhiteSpace(request.RecipientAccountNumber) ||
-            !string.IsNullOrWhiteSpace(request.RecipientAccountType) ||
-            !string.IsNullOrWhiteSpace(request.RecipientBranchCode);
+            !string.IsNullOrWhiteSpace(
+                request.RecipientName) ||
+            !string.IsNullOrWhiteSpace(
+                request.RecipientBank) ||
+            !string.IsNullOrWhiteSpace(
+                request.RecipientAccountNumber) ||
+            !string.IsNullOrWhiteSpace(
+                request.RecipientAccountType) ||
+            !string.IsNullOrWhiteSpace(
+                request.RecipientBranchCode);
 
-        if (hasSavedBeneficiary && hasAnyOnceOffRecipientDetails)
+        if (hasSavedBeneficiary &&
+            hasAnyOnceOffRecipientDetails)
         {
             throw new InvalidOperationException(
                 "Choose either a saved beneficiary or a once-off recipient.");
@@ -96,12 +99,17 @@ public class TransactionService : ITransactionService
 
         if (hasSavedBeneficiary)
         {
-            beneficiary = await _beneficiaryRepository.GetByIdForUserAsync(
-                request.BeneficiaryId!.Value,
-                currentUser.UserId);
+            beneficiary =
+                await _beneficiaryRepository
+                    .GetByIdForUserAsync(
+                        request.BeneficiaryId!.Value,
+                        currentUser.UserId);
 
             if (beneficiary == null)
-                throw new InvalidOperationException("Beneficiary not found.");
+            {
+                throw new InvalidOperationException(
+                    "Beneficiary not found.");
+            }
         }
         else
         {
@@ -110,7 +118,7 @@ public class TransactionService : ITransactionService
 
         var bankReference =
             $"TXN-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..24]
-            .ToUpper();
+                .ToUpper();
 
         var bankTransaction = new BankTransaction
         {
@@ -145,13 +153,17 @@ public class TransactionService : ITransactionService
             TransactionType = TransactionType.Transfer,
             Amount = request.Amount,
             Currency = account.Currency,
-            Description = request.Description?.Trim() ?? string.Empty,
+            Description =
+                request.Description?.Trim() ??
+                string.Empty,
             CreatedAt = DateTime.UtcNow
         };
 
-        await _transactionRepository.AddAsync(bankTransaction);
+        await _transactionRepository.AddAsync(
+            bankTransaction);
 
-        if (currentUser.SessionMode == SessionMode.Duress)
+        if (currentUser.SessionMode ==
+            SessionMode.Duress)
         {
             await ProcessDuressTransactionAsync(
                 bankTransaction,
@@ -161,13 +173,18 @@ public class TransactionService : ITransactionService
         }
         else
         {
-            ProcessNormalTransaction(bankTransaction, account);
-            await _bankAccountRepository.UpdateAsync(account);
+            ProcessNormalTransaction(
+                bankTransaction,
+                account);
+
+            await _bankAccountRepository.UpdateAsync(
+                account);
         }
 
         if (beneficiary != null)
         {
-            beneficiary.LastPaidAt = DateTime.UtcNow;
+            beneficiary.LastPaidAt =
+                DateTime.UtcNow;
         }
 
         await _unitOfWork.SaveChangesAsync();
@@ -177,7 +194,8 @@ public class TransactionService : ITransactionService
             entityType: "BankTransaction",
             entityId: bankTransaction.Id,
             userId: currentUser.UserId,
-            userSessionId: currentUser.UserSessionId,
+            userSessionId:
+                currentUser.UserSessionId,
             metadataJson:
                 $"{{\"status\":\"{bankTransaction.Status}\",\"amount\":{bankTransaction.Amount}}}");
 
@@ -186,44 +204,57 @@ public class TransactionService : ITransactionService
         return MapToResponse(bankTransaction);
     }
 
-    public async Task<CashSendResponseDto> CreateCashSendAsync(
-        CreateCashSendRequestDto request)
+    public async Task<CashSendResponseDto>
+        CreateCashSendAsync(
+            CreateCashSendRequestDto request)
     {
-        var currentUser = _currentUserService.GetCurrentUser();
+        var currentUser =
+            _currentUserService.GetCurrentUser();
 
-        var account = await _bankAccountRepository.GetByIdForUserAsync(
-            request.BankAccountId,
-            currentUser.UserId);
+        var account =
+            await _bankAccountRepository
+                .GetByIdForUserAsync(
+                    request.BankAccountId,
+                    currentUser.UserId);
 
         if (account == null)
         {
-            throw new InvalidOperationException("Account not found.");
+            throw new InvalidOperationException(
+                "Account not found.");
         }
 
         var now = DateTime.UtcNow;
 
-        var bankTransaction = new BankTransaction
-        {
-            Id = Guid.NewGuid(),
-            UserId = currentUser.UserId,
-            UserSessionId = currentUser.UserSessionId,
-            BankAccountId = account.Id,
-            BankReference =
-                $"TXN-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..24].ToUpper(),
-            TransactionType = TransactionType.CashVoucher,
-            Amount = request.Amount,
-            Currency = account.Currency,
-            Description = request.Description,
-            VoucherNumber = GenerateVoucherNumber(),
-            VoucherPin = request.VoucherPin,
-            VoucherExpiresAt = now.AddHours(24),
-            VoucherRedeemed = false,
-            CreatedAt = now
-        };
+        var bankTransaction =
+            new BankTransaction
+            {
+                Id = Guid.NewGuid(),
+                UserId = currentUser.UserId,
+                UserSessionId =
+                    currentUser.UserSessionId,
+                BankAccountId = account.Id,
+                BankReference =
+                    $"TXN-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..24]
+                        .ToUpper(),
+                TransactionType =
+                    TransactionType.CashVoucher,
+                Amount = request.Amount,
+                Currency = account.Currency,
+                Description = request.Description,
+                VoucherNumber =
+                    GenerateVoucherNumber(),
+                VoucherPin = request.VoucherPin,
+                VoucherExpiresAt =
+                    now.AddHours(24),
+                VoucherRedeemed = false,
+                CreatedAt = now
+            };
 
-        await _transactionRepository.AddAsync(bankTransaction);
+        await _transactionRepository.AddAsync(
+            bankTransaction);
 
-        if (currentUser.SessionMode == SessionMode.Duress)
+        if (currentUser.SessionMode ==
+            SessionMode.Duress)
         {
             await ProcessDuressTransactionAsync(
                 bankTransaction,
@@ -233,8 +264,12 @@ public class TransactionService : ITransactionService
         }
         else
         {
-            ProcessNormalTransaction(bankTransaction, account);
-            await _bankAccountRepository.UpdateAsync(account);
+            ProcessNormalTransaction(
+                bankTransaction,
+                account);
+
+            await _bankAccountRepository.UpdateAsync(
+                account);
         }
 
         await _unitOfWork.SaveChangesAsync();
@@ -244,21 +279,29 @@ public class TransactionService : ITransactionService
             entityType: "BankTransaction",
             entityId: bankTransaction.Id,
             userId: currentUser.UserId,
-            userSessionId: currentUser.UserSessionId,
+            userSessionId:
+                currentUser.UserSessionId,
             metadataJson:
                 $"{{\"type\":\"CashSend\",\"status\":\"{bankTransaction.Status}\",\"amount\":{bankTransaction.Amount}}}");
 
         return new CashSendResponseDto
         {
             TransactionId = bankTransaction.Id,
-            BankAccountId = bankTransaction.BankAccountId,
-            BankReference = bankTransaction.BankReference,
-            VoucherNumber = bankTransaction.VoucherNumber ?? string.Empty,
+            BankAccountId =
+                bankTransaction.BankAccountId,
+            BankReference =
+                bankTransaction.BankReference,
+            VoucherNumber =
+                bankTransaction.VoucherNumber ??
+                string.Empty,
             Amount = bankTransaction.Amount,
             Currency = bankTransaction.Currency,
             Status = bankTransaction.Status,
-            VoucherExpiresAt = bankTransaction.VoucherExpiresAt ?? now,
-            VoucherRedeemed = bankTransaction.VoucherRedeemed,
+            VoucherExpiresAt =
+                bankTransaction.VoucherExpiresAt ??
+                now,
+            VoucherRedeemed =
+                bankTransaction.VoucherRedeemed,
             CreatedAt = bankTransaction.CreatedAt
         };
     }
@@ -266,31 +309,36 @@ public class TransactionService : ITransactionService
     private static void ValidateOnceOffRecipient(
         CreateTransactionRequestDto request)
     {
-        if (string.IsNullOrWhiteSpace(request.RecipientName))
+        if (string.IsNullOrWhiteSpace(
+                request.RecipientName))
         {
             throw new InvalidOperationException(
                 "Recipient name is required for a once-off transfer.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.RecipientBank))
+        if (string.IsNullOrWhiteSpace(
+                request.RecipientBank))
         {
             throw new InvalidOperationException(
                 "Recipient bank is required for a once-off transfer.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.RecipientAccountNumber))
+        if (string.IsNullOrWhiteSpace(
+                request.RecipientAccountNumber))
         {
             throw new InvalidOperationException(
                 "Recipient account number is required for a once-off transfer.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.RecipientAccountType))
+        if (string.IsNullOrWhiteSpace(
+                request.RecipientAccountType))
         {
             throw new InvalidOperationException(
                 "Recipient account type is required for a once-off transfer.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.RecipientBranchCode))
+        if (string.IsNullOrWhiteSpace(
+                request.RecipientBranchCode))
         {
             throw new InvalidOperationException(
                 "Branch code is required for a once-off transfer.");
@@ -301,67 +349,108 @@ public class TransactionService : ITransactionService
         BankTransaction transaction,
         BankAccount account)
     {
-        if (account.Status == AccountStatus.Frozen)
+        if (account.Status ==
+            AccountStatus.Frozen)
+        {
             throw new InvalidOperationException(
                 "Transaction could not be processed.");
+        }
 
-        if (account.AvailableBalance < transaction.Amount)
-            throw new InvalidOperationException("Insufficient funds.");
+        if (account.AvailableBalance <
+            transaction.Amount)
+        {
+            throw new InvalidOperationException(
+                "Insufficient funds.");
+        }
 
-        account.AvailableBalance -= transaction.Amount;
-        account.CurrentBalance -= transaction.Amount;
+        account.AvailableBalance -=
+            transaction.Amount;
+
+        account.CurrentBalance -=
+            transaction.Amount;
+
         account.UpdatedAt = DateTime.UtcNow;
 
-        var riskAssessment = _riskService.AssessNormalTransaction(transaction);
+        var riskAssessment =
+            _riskService.AssessNormalTransaction(
+                transaction);
 
-        transaction.Status = TransactionStatus.Approved;
-        transaction.RiskLevel = riskAssessment.RiskLevel;
-        transaction.RiskScore = riskAssessment.Score;
+        transaction.Status =
+            TransactionStatus.Approved;
+
+        transaction.RiskLevel =
+            riskAssessment.RiskLevel;
+
+        transaction.RiskScore =
+            riskAssessment.Score;
     }
 
-    private async Task ProcessDuressTransactionAsync(
-        BankTransaction transaction,
-        BankAccount account,
-        Guid userId,
-        Guid userSessionId)
+    private async Task
+        ProcessDuressTransactionAsync(
+            BankTransaction transaction,
+            BankAccount account,
+            Guid userId,
+            Guid userSessionId)
     {
-        if (account.Status == AccountStatus.Frozen)
+        if (account.Status ==
+            AccountStatus.Frozen)
         {
-            transaction.Status = TransactionStatus.Blocked;
-            transaction.StatusReason = "Account unavailable.";
+            transaction.Status =
+                TransactionStatus.Blocked;
+
+            transaction.StatusReason =
+                "Account unavailable.";
+
             return;
         }
 
         var decoyProfile =
-            await _decoyProfileRepository.GetActiveByUserIdAsync(userId);
+            await _decoyProfileRepository
+                .GetActiveByUserIdAsync(userId);
 
         transaction.Flagged = true;
 
-        var riskAssessment = _riskService.AssessDuressTransaction(
-            transaction,
-            decoyProfile);
+        var riskAssessment =
+            _riskService.AssessDuressTransaction(
+                transaction,
+                decoyProfile);
 
-        transaction.RiskLevel = riskAssessment.RiskLevel;
-        transaction.RiskScore = riskAssessment.Score;
+        transaction.RiskLevel =
+            riskAssessment.RiskLevel;
+
+        transaction.RiskScore =
+            riskAssessment.Score;
 
         if (decoyProfile == null)
         {
-            if (transaction.Amount <= account.AvailableBalance)
+            if (transaction.Amount <=
+                account.AvailableBalance)
             {
-                account.AvailableBalance -= transaction.Amount;
-                account.CurrentBalance -= transaction.Amount;
-                account.UpdatedAt = DateTime.UtcNow;
+                account.AvailableBalance -=
+                    transaction.Amount;
 
-                await _bankAccountRepository.UpdateAsync(account);
+                account.CurrentBalance -=
+                    transaction.Amount;
 
-                transaction.Status = TransactionStatus.Approved;
+                account.UpdatedAt =
+                    DateTime.UtcNow;
+
+                await _bankAccountRepository
+                    .UpdateAsync(account);
+
+                transaction.Status =
+                    TransactionStatus.Approved;
+
                 transaction.SecureEscapeCode =
                     $"SE-{userSessionId:N}-{DateTime.UtcNow:yyyyMMddHHmmss}";
             }
             else
             {
-                transaction.Status = TransactionStatus.Failed;
-                transaction.StatusReason = "Insufficient funds.";
+                transaction.Status =
+                    TransactionStatus.Failed;
+
+                transaction.StatusReason =
+                    "Insufficient funds.";
             }
         }
         else if (decoyProfile.IsActive)
@@ -370,39 +459,64 @@ public class TransactionService : ITransactionService
                 decoyProfile.EmergencyBudget,
                 account.AvailableBalance);
 
-            if (transaction.Amount <= decoyCeiling)
+            if (transaction.Amount <=
+                decoyCeiling)
             {
-                account.AvailableBalance -= transaction.Amount;
-                account.CurrentBalance -= transaction.Amount;
-                decoyProfile.EmergencyBudget -= transaction.Amount;
-                decoyProfile.DisplayBalance -= transaction.Amount;
+                account.AvailableBalance -=
+                    transaction.Amount;
 
-                account.UpdatedAt = DateTime.UtcNow;
-                decoyProfile.UpdatedAt = DateTime.UtcNow;
+                account.CurrentBalance -=
+                    transaction.Amount;
 
-                await _bankAccountRepository.UpdateAsync(account);
-                await _decoyProfileRepository.UpdateAsync(decoyProfile);
+                decoyProfile.EmergencyBudget -=
+                    transaction.Amount;
 
-                transaction.Status = TransactionStatus.DecoyApproved;
+                decoyProfile.DisplayBalance -=
+                    transaction.Amount;
+
+                account.UpdatedAt =
+                    DateTime.UtcNow;
+
+                decoyProfile.UpdatedAt =
+                    DateTime.UtcNow;
+
+                await _bankAccountRepository
+                    .UpdateAsync(account);
+
+                await _decoyProfileRepository
+                    .UpdateAsync(decoyProfile);
+
+                transaction.Status =
+                    TransactionStatus.DecoyApproved;
+
                 transaction.SecureEscapeCode =
                     $"SE-{userSessionId:N}-{DateTime.UtcNow:yyyyMMddHHmmss}";
             }
             else
             {
-                transaction.Status = TransactionStatus.Failed;
-                transaction.StatusReason = "Insufficient funds.";
+                transaction.Status =
+                    TransactionStatus.Failed;
+
+                transaction.StatusReason =
+                    "Insufficient funds.";
             }
         }
 
-        var fraudReportResult = await _fraudReportingService
-            .ReportDuressTransactionAsync(
-                transaction,
-                userId,
-                userSessionId);
+        var fraudReportResult =
+            await _fraudReportingService
+                .ReportDuressTransactionAsync(
+                    transaction,
+                    userId,
+                    userSessionId);
 
-        transaction.FraudReported = fraudReportResult.Reported;
-        transaction.FraudReportedAt = fraudReportResult.ReportedAt;
-        transaction.FraudReportReference = fraudReportResult.Reference;
+        transaction.FraudReported =
+            fraudReportResult.Reported;
+
+        transaction.FraudReportedAt =
+            fraudReportResult.ReportedAt;
+
+        transaction.FraudReportReference =
+            fraudReportResult.Reference;
 
         var alert = new Alert
         {
@@ -424,57 +538,15 @@ public class TransactionService : ITransactionService
             {
                 Id = Guid.NewGuid(),
                 UserSessionId = userSessionId,
-                BankTransactionId = transaction.Id,
+                BankTransactionId =
+                    transaction.Id,
                 Score = riskAssessment.Score,
-                RiskLevel = riskAssessment.RiskLevel,
+                RiskLevel =
+                    riskAssessment.RiskLevel,
                 ReasonsJson =
                     $"{{\"reason\":\"{riskAssessment.Reason}\",\"status\":\"{transaction.Status}\",\"score\":{riskAssessment.Score},\"riskLevel\":\"{riskAssessment.RiskLevel}\"}}",
                 CreatedAt = DateTime.UtcNow
             });
-
-        await _notificationAttemptRepository.AddAsync(
-            new NotificationAttempt
-            {
-                Id = Guid.NewGuid(),
-                AlertId = alert.Id,
-                Channel = NotificationChannel.Webhook,
-                Destination = "Fraud team webhook",
-                Status = NotificationStatus.Pending,
-                AttemptedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
-            });
-
-        var latestLocation = await _locationEventRepository
-            .GetLatestBySessionIdAsync(userSessionId);
-
-        var lastKnownLocation = latestLocation == null
-            ? null
-            : $"{latestLocation.Latitude}, {latestLocation.Longitude}";
-
-        var emergencyContacts =
-            await _emergencyContactRepository.GetAllByUserIdAsync(userId);
-
-        foreach (var contact in emergencyContacts)
-        {
-            var messageBody = lastKnownLocation == null
-                ? "Secure Escape alert: A duress transaction was detected. No location was captured yet."
-                : $"Secure Escape alert: A duress transaction was detected. Last known location: {lastKnownLocation}.";
-
-            await _notificationAttemptRepository.AddAsync(
-                new NotificationAttempt
-                {
-                    Id = Guid.NewGuid(),
-                    AlertId = alert.Id,
-                    Channel = NotificationChannel.Sms,
-                    Destination = contact.PhoneNumber,
-                    MessageBody = messageBody,
-                    Status = NotificationStatus.Pending,
-                    AttemptedAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    ResponseMessage =
-                        $"Emergency contact notification queued for {contact.FullName}."
-                });
-        }
 
         await _auditService.LogAsync(
             AuditEventType.AlertCreated,
@@ -486,31 +558,40 @@ public class TransactionService : ITransactionService
                 $"{{\"type\":\"DuressTransaction\",\"status\":\"{transaction.Status}\"}}");
     }
 
-    private static TransactionResponseDto MapToResponse(
-        BankTransaction t) => new()
-    {
-        Id = t.Id,
-        BankAccountId = t.BankAccountId,
-        BeneficiaryId = t.BeneficiaryId,
+    private static TransactionResponseDto
+        MapToResponse(
+            BankTransaction t) => new()
+        {
+            Id = t.Id,
+            BankAccountId = t.BankAccountId,
+            BeneficiaryId = t.BeneficiaryId,
 
-        BeneficiaryName = t.Beneficiary?.Name ?? t.RecipientName,
+            BeneficiaryName =
+                t.Beneficiary?.Name ??
+                t.RecipientName,
 
-        BankReference = t.BankReference,
-        TransactionType = t.TransactionType,
-        Amount = t.Amount,
-        Currency = t.Currency,
-        Status = t.Status,
-        Description = t.Description,
-        StatusReason = t.StatusReason,
-        SecureEscapeCode = t.SecureEscapeCode,
-        VoucherNumber = t.VoucherNumber,
-        VoucherExpiresAt = t.VoucherExpiresAt,
-        VoucherRedeemed = t.VoucherRedeemed,
-        CreatedAt = t.CreatedAt
-    };
+            BankReference = t.BankReference,
+            TransactionType =
+                t.TransactionType,
+            Amount = t.Amount,
+            Currency = t.Currency,
+            Status = t.Status,
+            Description = t.Description,
+            StatusReason = t.StatusReason,
+            SecureEscapeCode =
+                t.SecureEscapeCode,
+            VoucherNumber = t.VoucherNumber,
+            VoucherExpiresAt =
+                t.VoucherExpiresAt,
+            VoucherRedeemed =
+                t.VoucherRedeemed,
+            CreatedAt = t.CreatedAt
+        };
 
     private static string GenerateVoucherNumber()
     {
-        return $"C{Random.Shared.Next(100000000, 999999999)}";
+        return $"C{Random.Shared.Next(
+            100000000,
+            999999999)}";
     }
 }

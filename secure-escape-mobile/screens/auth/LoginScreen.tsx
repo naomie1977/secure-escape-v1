@@ -16,6 +16,7 @@ import { colors } from "@/utils/theme";
 import { login } from "@/services/authService";
 import { saveAuthSession } from "@/services/tokenStore";
 import * as Location from "expo-location";
+import * as LocalAuthentication from "expo-local-authentication";
 import Constants from "expo-constants";
 import {
   enableBiometricLogin,
@@ -102,7 +103,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
   const getLoginContext = async () => {
     console.log("[LOGIN] Starting location collection");
-
     console.log("[LOGIN] Requesting foreground location permission");
 
     const permission = await Location.requestForegroundPermissionsAsync();
@@ -183,6 +183,50 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     return "Unable to sign in. Please try again.";
   };
 
+  const performSecondFactorAuthentication = async (): Promise<boolean> => {
+    console.log("[LOGIN] Starting biometric second-factor authentication");
+
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+
+    if (!hasHardware) {
+      showError(
+        "Biometric authentication is required to sign in, but this device does not support biometrics.",
+      );
+      return false;
+    }
+
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+    if (!isEnrolled) {
+      showError(
+        "Biometric authentication is required to sign in. Please set up Face ID, fingerprint, or facial recognition on your device and try again.",
+      );
+      return false;
+    }
+
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: "Verify your identity",
+      cancelLabel: "Cancel",
+      disableDeviceFallback: true,
+    });
+
+    if (!result.success) {
+      console.log(
+        "[LOGIN] Biometric second-factor authentication failed or was cancelled",
+      );
+
+      showError(
+        "Biometric verification was not completed. Please try signing in again.",
+      );
+
+      return false;
+    }
+
+    console.log("[LOGIN] Biometric second-factor authentication succeeded");
+
+    return true;
+  };
+
   const handleSubmit = async () => {
     console.log("[LOGIN] Submit pressed");
 
@@ -218,26 +262,34 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
       console.log("[LOGIN] Backend login succeeded");
 
+      console.log("[LOGIN] Requesting biometric second factor");
+
+      const biometricVerified = await performSecondFactorAuthentication();
+
+      if (!biometricVerified) {
+        console.log(
+          "[LOGIN] Login stopped because biometric second factor was not completed",
+        );
+        return;
+      }
+
       console.log("[LOGIN] Saving authentication session");
 
-      await saveAuthSession({
+      const authenticatedSession = {
         token: response.token,
         sessionMode: response.sessionMode,
         userSessionId: response.userSessionId,
         userId: response.userId,
-      });
+      };
+
+      await saveAuthSession(authenticatedSession);
 
       console.log("[LOGIN] Authentication session saved");
 
       if (biometricsEnabled) {
         console.log("[LOGIN] Enabling biometric login");
 
-        await enableBiometricLogin({
-          token: response.token,
-          sessionMode: response.sessionMode,
-          userSessionId: response.userSessionId,
-          userId: response.userId,
-        });
+        await enableBiometricLogin(authenticatedSession);
 
         console.log("[LOGIN] Biometric login enabled");
       }

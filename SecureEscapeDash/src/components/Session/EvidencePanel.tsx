@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import StatusBadge from "../StatusBadge";
 import type { DuressSessionDetail } from "../../types/session";
+import LocationAddress from "./LocationAddress";
 import {
   getSessionEvidence,
   getSessionEvidenceFile,
@@ -133,6 +134,16 @@ export default function EvidencePanel({
     }
 
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatBeneficiaryStatus = (
+    status: string | null,
+  ) => {
+    if (!status) {
+      return "Not available";
+    }
+
+    return status.replace(/([a-z])([A-Z])/g, "$1 $2");
   };
 
   const currentPhotoEvidenceBlock = (
@@ -343,7 +354,7 @@ export default function EvidencePanel({
           </h2>
 
           <p className="panel-description">
-            Chronological record of GPS positions
+            Readable addresses and original GPS coordinates
             captured during this incident.
           </p>
         </div>
@@ -376,20 +387,19 @@ export default function EvidencePanel({
                 className="px-5 py-4 transition-colors hover:bg-[#F8FBFD]"
               >
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-mono text-sm font-semibold text-[#102A43]">
-                        {Number(
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start gap-2">
+                      <LocationAddress
+                        latitude={Number(
                           location.latitude,
-                        ).toFixed(6)}
-                        ,{" "}
-                        {Number(
+                        )}
+                        longitude={Number(
                           location.longitude,
-                        ).toFixed(6)}
-                      </p>
+                        )}
+                      />
 
                       {index === 0 && (
-                        <span className="border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#1769AA]">
+                        <span className="shrink-0 border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#1769AA]">
                           Latest
                         </span>
                       )}
@@ -447,8 +457,8 @@ export default function EvidencePanel({
           </h2>
 
           <p className="panel-description">
-            Transactions captured during this duress
-            session.
+            Transaction and recipient details captured
+            during this duress session.
           </p>
         </div>
 
@@ -500,9 +510,15 @@ export default function EvidencePanel({
 
                   <div className="mt-4">
                     <h3 className="text-2xl font-bold tracking-tight text-[#102A43]">
-                      R{" "}
+                      {tx.currency === "ZAR"
+                        ? "R"
+                        : `${tx.currency} `}
                       {tx.amount.toLocaleString(
                         "en-ZA",
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        },
                       )}
                     </h3>
 
@@ -511,14 +527,151 @@ export default function EvidencePanel({
                     </p>
                   </div>
 
-                  <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="mt-5 border border-[#DCE6EE] bg-[#F8FBFD]">
+                    <div className="border-b border-[#DCE6EE] px-4 py-3">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#1769AA]">
+                        Recipient / Beneficiary Details
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-x-6 gap-y-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                          Beneficiary Name
+                        </p>
+
+                        <p className="mt-1 text-sm font-semibold text-[#102A43]">
+                          {tx.beneficiaryName ||
+                            "Not available"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                          Bank
+                        </p>
+
+                        <p className="mt-1 text-sm font-medium text-slate-700">
+                          {tx.beneficiaryBank ||
+                            "Not available"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                          Account Number
+                        </p>
+
+                        <p className="mt-1 break-all font-mono text-sm font-semibold text-slate-800">
+                          {tx.beneficiaryAccountNumber ||
+                            "Not available"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                          Account Type
+                        </p>
+
+                        <p className="mt-1 text-sm font-medium text-slate-700">
+                          {tx.beneficiaryAccountType ||
+                            "Not available"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                          Branch Code
+                        </p>
+
+                        <p className="mt-1 font-mono text-sm font-medium text-slate-700">
+                          {tx.beneficiaryBranchCode ||
+                            "Not available"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                          Beneficiary Reference
+                        </p>
+
+                        <p className="mt-1 break-words text-sm font-medium text-slate-700">
+                          {tx.beneficiaryReference ||
+                            "Not available"}
+                        </p>
+                      </div>
+
+                      {tx.beneficiaryId && (
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                            Beneficiary Status
+                          </p>
+
+                          <p className="mt-1 text-sm font-medium text-slate-700">
+                            {formatBeneficiaryStatus(
+                              tx.beneficiaryStatus,
+                            )}
+                          </p>
+                        </div>
+                      )}
+
+                      {tx.beneficiaryId &&
+                        tx.beneficiaryLastPaidAt && (
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                              Last Paid
+                            </p>
+
+                            <p className="mt-1 text-sm font-medium text-slate-700">
+                              {new Date(
+                                tx.beneficiaryLastPaidAt,
+                              ).toLocaleString(
+                                "en-ZA",
+                              )}
+                            </p>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-                        Reference
+                        Transaction Reference
                       </p>
 
                       <p className="mt-1 break-all text-sm font-medium text-slate-800">
                         {tx.bankReference}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                        Currency
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-slate-800">
+                        {tx.currency}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                        Risk Level
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-slate-800">
+                        {tx.riskLevel}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                        Risk Score
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-slate-800">
+                        {tx.riskScore}
                       </p>
                     </div>
 
@@ -534,10 +687,22 @@ export default function EvidencePanel({
                       </div>
                     )}
 
-                    {tx.statusReason && (
+                    {tx.description && (
                       <div className="sm:col-span-2">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-                          Reason
+                          Description
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-600">
+                          {tx.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {tx.statusReason && (
+                      <div className="sm:col-span-2 lg:col-span-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                          Status Reason
                         </p>
 
                         <p className="mt-1 text-sm text-slate-600">

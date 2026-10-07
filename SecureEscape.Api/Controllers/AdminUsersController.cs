@@ -6,7 +6,7 @@ using SecureEscape.Api.Interfaces;
 namespace SecureEscape.Api.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "FraudManager,SystemAdmin,SecureEscapeAdmin")]
 [Route("api/v1/admin/users")]
 public class AdminUsersController : ControllerBase
 {

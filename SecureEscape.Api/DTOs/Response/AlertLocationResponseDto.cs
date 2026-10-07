@@ -10,6 +10,8 @@ public class AlertLocationResponseDto
 
     public decimal Longitude { get; set; }
 
+    public string? Address { get; set; }
+
     public decimal AccuracyMeters { get; set; }
 
     public LocationSource LocationSource { get; set; }

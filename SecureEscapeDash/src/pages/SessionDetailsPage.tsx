@@ -282,6 +282,50 @@ export default function SessionDetail() {
           ← Back to Dashboard
         </button>
 
+        {isUnassigned && canClaimCases && (
+          <section className="mb-6 overflow-hidden border-2 border-[#1769AA] bg-white shadow-sm">
+            <div className="flex flex-col gap-4 bg-gradient-to-r from-[#EAF4FB] via-white to-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-[#1769AA] text-lg font-bold text-white">
+                  !
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#1769AA]">
+                      Analyst action required
+                    </p>
+
+                    <span className="border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-amber-700">
+                      Unassigned
+                    </span>
+                  </div>
+
+                  <h2 className="mt-1 text-lg font-bold text-[#102A43]">
+                    This case is available to claim
+                  </h2>
+
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+                    Claim this investigation to become the
+                    assigned fraud analyst and begin the full
+                    investigation workflow.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleClaimSession}
+                disabled={claimingCase}
+                className="shrink-0 border border-[#1769AA] bg-[#1769AA] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#12558A] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {claimingCase
+                  ? "Claiming case..."
+                  : "Claim Case"}
+              </button>
+            </div>
+          </section>
+        )}
+
         <CaseOverview
           session={session}
           assignedToMe={isAssignedToMe}
@@ -332,22 +376,11 @@ export default function SessionDetail() {
                   </p>
 
                   <p className="mt-1 text-sm leading-6 text-amber-700">
-                    Claim or assign this case before beginning
-                    the investigation workflow.
+                    {canClaimCases
+                      ? "Use the Claim Case action at the top of this page to take ownership of this investigation."
+                      : "This case must be assigned before the investigation workflow can begin."}
                   </p>
                 </div>
-
-                {canClaimCases && (
-                  <button
-                    onClick={handleClaimSession}
-                    disabled={claimingCase}
-                    className="mt-5 w-full bg-[#1769AA] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#12558A] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                  >
-                    {claimingCase
-                      ? "Claiming case..."
-                      : "Claim case"}
-                  </button>
-                )}
 
                 {canAssignCases && (
                   <div className="mt-6 border-t border-[#E5EDF3] pt-5">

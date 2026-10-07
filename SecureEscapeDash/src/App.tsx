@@ -9,6 +9,7 @@ import { getAdminUser } from "./utils/tokenStore";
 import { hasPermission } from "./constants/permission";
 import AnalystSearchPage from "./pages/Analyst/AnalystSearchPage";
 import AnalystDashboard from "./pages/Analyst/AnalystDashboard";
+import AnalystOperationsPage from "./pages/Analyst/AnalystOperationsPage";
 import ManagerDashboard from "./pages/Manager/ManagerDashboard";
 import ManagerResolvedPage from "./pages/Manager/ManagerResolvedPage";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -64,6 +65,60 @@ export default function App() {
           element={
             <RoleProtectedRoute permission="viewAnalystDashboard">
               <AnalystSearchPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/analyst/activity-intelligence"
+          element={
+            <RoleProtectedRoute permission="viewAnalystDashboard">
+              <AnalystOperationsPage section="activity" />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/analyst/geographic-intelligence"
+          element={
+            <RoleProtectedRoute permission="viewAnalystDashboard">
+              <AnalystOperationsPage section="geographic" />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/analyst/immediate-attention"
+          element={
+            <RoleProtectedRoute permission="viewAnalystDashboard">
+              <AnalystOperationsPage section="attention" />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/analyst/operational-performance"
+          element={
+            <RoleProtectedRoute permission="viewAnalystDashboard">
+              <AnalystOperationsPage section="performance" />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/analyst/case-monitoring"
+          element={
+            <RoleProtectedRoute permission="viewAnalystDashboard">
+              <AnalystOperationsPage section="monitoring" />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/analyst/priority-cases"
+          element={
+            <RoleProtectedRoute permission="viewAnalystDashboard">
+              <AnalystOperationsPage section="priority" />
             </RoleProtectedRoute>
           }
         />

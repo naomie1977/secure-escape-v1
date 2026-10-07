@@ -95,6 +95,7 @@ builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddHttpClient<IReverseGeocodingService, ReverseGeocodingService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IAdminAlertService, AdminAlertService>();
 builder.Services.AddScoped<IHashingService, BCryptHashingService>();
@@ -146,8 +147,33 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+// Swagger is available for local/development testing only.
+// Production environments should not expose API documentation by default.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    // Return a controlled response for unexpected production errors
+    // instead of exposing stack traces or internal implementation details.
+    app.UseExceptionHandler(exceptionHandlerApp =>
+    {
+        exceptionHandlerApp.Run(async context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.ContentType = "application/json";
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = "An unexpected error occurred."
+            });
+        });
+    });
+
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 

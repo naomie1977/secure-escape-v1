@@ -1,11 +1,11 @@
 import {
   Clock3,
-  Crosshair,
   MapPin,
   Navigation,
 } from "lucide-react";
 
 import SessionMap from "../SessionMap";
+import LocationAddress from "./LocationAddress";
 import type { DuressSessionDetail } from "../../types/session";
 
 interface IncidentLocationPanelProps {
@@ -111,8 +111,8 @@ export default function IncidentLocationPanel({
 
             <p className="panel-description">
               {isLive
-                ? "Latest GPS position captured during the active duress incident."
-                : "Most recent GPS position recorded during this incident."}
+                ? "Latest customer location captured during the active duress incident."
+                : "Most recent customer location recorded during this incident."}
             </p>
           </div>
         </div>
@@ -127,13 +127,13 @@ export default function IncidentLocationPanel({
 
       <div className="grid grid-cols-1 border-b border-[#DCE7EF] bg-[#FBFDFE] md:grid-cols-3">
         <LocationMetric
-          icon={<Crosshair size={17} />}
-          label="Latest Coordinates"
+          icon={<MapPin size={17} />}
+          label="Latest Address"
         >
-          <p className="font-mono text-sm font-semibold text-[#102A43]">
-            {Number(latest.latitude).toFixed(6)},{" "}
-            {Number(latest.longitude).toFixed(6)}
-          </p>
+          <LocationAddress
+            latitude={Number(latest.latitude)}
+            longitude={Number(latest.longitude)}
+          />
         </LocationMetric>
 
         <LocationMetric

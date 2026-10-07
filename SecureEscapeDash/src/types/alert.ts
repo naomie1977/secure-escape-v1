@@ -26,6 +26,16 @@ export type AlertTransaction = {
   id: string;
   bankAccountId: string;
   beneficiaryId: string | null;
+
+  beneficiaryName: string | null;
+  beneficiaryBank: string | null;
+  beneficiaryAccountNumber: string | null;
+  beneficiaryAccountType: string | null;
+  beneficiaryBranchCode: string | null;
+  beneficiaryReference: string | null;
+  beneficiaryStatus: string | null;
+  beneficiaryLastPaidAt: string | null;
+
   bankReference: string;
   transactionType: string;
   amount: number;

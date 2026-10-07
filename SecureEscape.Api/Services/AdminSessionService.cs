@@ -856,6 +856,34 @@ public class AdminSessionService : IAdminSessionService
             Id = transaction.Id,
             BankAccountId = transaction.BankAccountId,
             BeneficiaryId = transaction.BeneficiaryId,
+
+            BeneficiaryName =
+                transaction.Beneficiary?.Name
+                ?? transaction.RecipientName,
+
+            BeneficiaryBank =
+                transaction.Beneficiary?.BankName
+                ?? transaction.RecipientBank,
+
+            BeneficiaryAccountNumber =
+                transaction.Beneficiary?.AccountNumber
+                ?? transaction.RecipientAccountNumber,
+
+            BeneficiaryAccountType =
+                transaction.RecipientAccountType,
+
+            BeneficiaryBranchCode =
+                transaction.RecipientBranchCode,
+
+            BeneficiaryReference =
+                transaction.Beneficiary?.Reference,
+
+            BeneficiaryStatus =
+                transaction.Beneficiary?.Status,
+
+            BeneficiaryLastPaidAt =
+                transaction.Beneficiary?.LastPaidAt,
+
             BankReference = transaction.BankReference,
             TransactionType = transaction.TransactionType,
             Amount = transaction.Amount,

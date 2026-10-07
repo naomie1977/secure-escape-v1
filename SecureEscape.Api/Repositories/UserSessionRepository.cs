@@ -40,14 +40,18 @@ public class UserSessionRepository : IUserSessionRepository
     {
         return await _context.UserSessions
             .AsNoTracking()
-            .Include(x => x.User).ThenInclude(x => x!.BankAccounts)
+            .Include(x => x.User)
+                .ThenInclude(x => x!.BankAccounts)
             .Include(x => x.Alerts)
                 .ThenInclude(x => x.NotificationAttempts)
             .Include(x => x.AlertActions)
                 .ThenInclude(x => x.AdminUser)
             .Include(x => x.Transactions)
+                .ThenInclude(x => x.Beneficiary)
             .Include(x => x.LocationEvents)
-            .FirstOrDefaultAsync(x => x.Id == sessionId && x.Mode == SessionMode.Duress);
+            .FirstOrDefaultAsync(x =>
+                x.Id == sessionId &&
+                x.Mode == SessionMode.Duress);
     }
 
     public async Task<UserSession?> GetByIdAsync(Guid sessionId)
