@@ -15,9 +15,12 @@ public class IntegrationTests : IClassFixture<IntegrationTestFactory>
     [Fact]
     public async Task Api_Should_Start_Successfully()
     {
-        var response = await _client.GetAsync("/swagger/index.html");
+        // Swagger is intentionally disabled outside the Development
+        // environment. A protected API endpoint is therefore used to
+        // verify that the application starts and responds successfully.
+        var response = await _client.GetAsync("/api/v1/risk-zones");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
