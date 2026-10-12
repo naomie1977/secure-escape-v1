@@ -1,4 +1,4 @@
-import {
+﻿import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
@@ -164,7 +164,8 @@ export default function RootLayout() {
         />
       </Stack>
 
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </ThemeProvider>
   );
 }
+

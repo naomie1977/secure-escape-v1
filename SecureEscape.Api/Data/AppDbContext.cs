@@ -1,418 +1,1 @@
-using Microsoft.EntityFrameworkCore;
-using SecureEscape.Api.Models;
-
-namespace SecureEscape.Api.Data
-{
-    public class AppDbContext : DbContext
-    {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-        {
-        }
-
-        public DbSet<AdminUser> AdminUsers { get; set; }
-        public DbSet<Alert> Alerts { get; set; }
-        public DbSet<AlertAction> AlertActions { get; set; }
-        public DbSet<ApiClient> ApiClients { get; set; }
-        public DbSet<AuditLog> AuditLogs { get; set; }
-        public DbSet<AuthCredential> AuthCredentials { get; set; }
-        public DbSet<BankAccount> BankAccounts { get; set; }
-        public DbSet<BankIntegration> BankIntegrations { get; set; }
-        public DbSet<BankTransaction> BankTransactions { get; set; }
-        public DbSet<Beneficiary> Beneficiaries { get; set; }
-        public DbSet<Card> Cards { get; set; }
-        public DbSet<DecoyProfile> DecoyProfiles { get; set; }
-        public DbSet<EmergencyContact> EmergencyContacts { get; set; }
-        public DbSet<LocationEvent> LocationEvents { get; set; }
-        public DbSet<NotificationAttempt> NotificationAttempts { get; set; }
-        public DbSet<RiskEvaluation> RiskEvaluations { get; set; }
-        public DbSet<RiskZone> RiskZones { get; set; }
-        public DbSet<SecureEscapeEnrollment> SecureEscapeEnrollments { get; set; }
-        public DbSet<SessionEvidence> SessionEvidence { get; set; }
-        public DbSet<User> Users { get; set; }
-        public DbSet<UserMessage> UserMessages { get; set; }
-        public DbSet<UserSession> UserSessions { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            ConfigureEnums(modelBuilder);
-            ConfigureIndexes(modelBuilder);
-            ConfigureRelationships(modelBuilder);
-        }
-
-        private static void ConfigureEnums(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<AdminUser>()
-                .Property(x => x.AdminRole)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<AdminUser>()
-                .Property(x => x.ActivityStatus)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<Alert>()
-                .Property(x => x.Type)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<Alert>()
-                .Property(x => x.Severity)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<Alert>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<AlertAction>()
-                .Property(x => x.ActionType)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<ApiClient>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<AuditLog>()
-                .Property(x => x.EventType)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<BankAccount>()
-                .Property(x => x.AccountType)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<BankAccount>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<BankIntegration>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<BankTransaction>()
-                .Property(x => x.TransactionType)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<BankTransaction>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<BankTransaction>()
-                .Property(x => x.RiskLevel)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<Beneficiary>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<Card>()
-                .Property(x => x.CardType)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<Card>()
-                .Property(x => x.CardStatus)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<DecoyProfile>()
-                .Property(x => x.ProfileType)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<LocationEvent>()
-                .Property(x => x.LocationSource)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<NotificationAttempt>()
-                .Property(x => x.Channel)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<NotificationAttempt>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<RiskEvaluation>()
-                .Property(x => x.RiskLevel)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<RiskZone>()
-                .Property(x => x.RiskLevel)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<SecureEscapeEnrollment>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<User>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<UserSession>()
-                .Property(x => x.Mode)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<UserSession>()
-                .Property(x => x.Status)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<UserSession>()
-                .Property(x => x.CaseStatus)
-                .HasConversion<string>();
-
-            modelBuilder.Entity<UserSession>()
-                .Property(x => x.ManagerReviewStatus)
-                .HasConversion<string>();
-        }
-
-        private static void ConfigureIndexes(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<BankIntegration>()
-                .HasIndex(x => x.BankCode)
-                .IsUnique();
-
-            modelBuilder.Entity<ApiClient>()
-                .HasIndex(x => x.ClientId)
-                .IsUnique();
-
-            modelBuilder.Entity<User>()
-                .HasIndex(x => new { x.BankIntegrationId, x.BankCustomerId })
-                .IsUnique();
-
-            modelBuilder.Entity<User>()
-                .HasIndex(x => x.Email)
-                .IsUnique();
-
-            modelBuilder.Entity<AuthCredential>()
-                .HasIndex(x => x.UserId)
-                .IsUnique();
-
-            modelBuilder.Entity<SecureEscapeEnrollment>()
-                .HasIndex(x => x.UserId)
-                .IsUnique();
-
-            modelBuilder.Entity<BankAccount>()
-                .HasIndex(x => x.AccountNumber)
-                .IsUnique();
-
-            modelBuilder.Entity<BankTransaction>()
-                .HasIndex(x => x.BankReference)
-                .IsUnique();
-
-            modelBuilder.Entity<UserSession>()
-                .HasIndex(x => x.BankSessionId);
-
-            modelBuilder.Entity<Alert>()
-                .HasIndex(x => x.Status);
-
-            modelBuilder.Entity<AuditLog>()
-                .HasIndex(x => x.CreatedAt);
-
-            modelBuilder.Entity<RiskZone>()
-                .HasIndex(x => x.IsActive);
-
-            modelBuilder.Entity<RiskZone>()
-                .HasIndex(x => x.RiskLevel);
-
-            modelBuilder.Entity<UserMessage>()
-                .HasIndex(x => new { x.UserId, x.DeduplicationKey })
-                .IsUnique();
-
-            modelBuilder.Entity<SessionEvidence>()
-                .HasIndex(x => x.UserSessionId);
-
-            modelBuilder.Entity<SessionEvidence>()
-                .HasIndex(x => x.BankTransactionId);
-        }
-
-        private static void ConfigureRelationships(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<BankIntegration>()
-                .HasMany(x => x.Users)
-                .WithOne(x => x.BankIntegration)
-                .HasForeignKey(x => x.BankIntegrationId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<BankIntegration>()
-                .HasMany(x => x.ApiClients)
-                .WithOne(x => x.BankIntegration)
-                .HasForeignKey(x => x.BankIntegrationId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<BankIntegration>()
-                .HasMany<AdminUser>()
-                .WithOne(x => x.BankIntegration)
-                .HasForeignKey(x => x.BankIntegrationId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<User>()
-                .HasOne(x => x.AuthCredential)
-                .WithOne(x => x.User)
-                .HasForeignKey<AuthCredential>(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<User>()
-                .HasOne(x => x.SecureEscapeEnrollment)
-                .WithOne(x => x.User)
-                .HasForeignKey<SecureEscapeEnrollment>(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<User>()
-                .HasMany(x => x.BankAccounts)
-                .WithOne(x => x.User)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<User>()
-                .HasMany(x => x.Cards)
-                .WithOne(x => x.User)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<User>()
-                .HasMany(x => x.Beneficiaries)
-                .WithOne(x => x.User)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<User>()
-                .HasMany(x => x.Sessions)
-                .WithOne(x => x.User)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<User>()
-                .HasMany(x => x.DecoyProfiles)
-                .WithOne(x => x.User)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<User>()
-                .HasMany(x => x.Alerts)
-                .WithOne(x => x.User)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<User>()
-                .HasMany(x => x.EmergencyContacts)
-                .WithOne(x => x.User)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<BankAccount>()
-                .HasMany(x => x.Cards)
-                .WithOne(x => x.BankAccount)
-                .HasForeignKey(x => x.BankAccountId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<BankAccount>()
-                .HasMany(x => x.Transactions)
-                .WithOne(x => x.BankAccount)
-                .HasForeignKey(x => x.BankAccountId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Beneficiary>()
-                .HasMany(x => x.Transactions)
-                .WithOne(x => x.Beneficiary)
-                .HasForeignKey(x => x.BeneficiaryId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<UserSession>()
-                .HasMany(x => x.Transactions)
-                .WithOne(x => x.UserSession)
-                .HasForeignKey(x => x.UserSessionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<UserSession>()
-                .HasMany(x => x.Alerts)
-                .WithOne(x => x.UserSession)
-                .HasForeignKey(x => x.UserSessionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<UserSession>()
-                .HasMany(x => x.LocationEvents)
-                .WithOne(x => x.UserSession)
-                .HasForeignKey(x => x.UserSessionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<UserSession>()
-                .HasMany(x => x.RiskEvaluations)
-                .WithOne(x => x.UserSession)
-                .HasForeignKey(x => x.UserSessionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<UserSession>()
-                .HasMany(x => x.AuditLogs)
-                .WithOne(x => x.UserSession)
-                .HasForeignKey(x => x.UserSessionId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<UserSession>()
-                .HasOne(s => s.AssignedAdminUser)
-                .WithMany()
-                .HasForeignKey(s => s.AssignedAdminUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<BankTransaction>()
-                .HasOne(x => x.User)
-                .WithMany()
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<BankTransaction>()
-                .HasMany(x => x.RiskEvaluations)
-                .WithOne(x => x.BankTransaction)
-                .HasForeignKey(x => x.BankTransactionId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<UserSession>()
-                .HasMany(x => x.AlertActions)
-                .WithOne(x => x.UserSession)
-                .HasForeignKey(x => x.UserSessionId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<UserSession>()
-                .HasMany(x => x.Evidence)
-                .WithOne(x => x.UserSession)
-                .HasForeignKey(x => x.UserSessionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<SessionEvidence>()
-                .HasOne(x => x.BankTransaction)
-                .WithMany()
-                .HasForeignKey(x => x.BankTransactionId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Alert>()
-                .HasMany(x => x.LocationEvents)
-                .WithOne(x => x.Alert)
-                .HasForeignKey(x => x.AlertId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Alert>()
-                .HasMany(x => x.NotificationAttempts)
-                .WithOne(x => x.Alert)
-                .HasForeignKey(x => x.AlertId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<AdminUser>()
-                .HasMany(x => x.AlertActions)
-                .WithOne(x => x.AdminUser)
-                .HasForeignKey(x => x.AdminUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<AdminUser>()
-                .HasMany(x => x.AuditLogs)
-                .WithOne(x => x.AdminUser)
-                .HasForeignKey(x => x.AdminUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<User>()
-                .HasMany(x => x.AuditLogs)
-                .WithOne(x => x.User)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Alert>()
-                .Ignore(x => x.AuditLogs);
-
-            modelBuilder.Entity<BankTransaction>()
-                .Ignore(x => x.AuditLogs);
-        }
-    }
-}
+using Microsoft.EntityFrameworkCore;using SecureEscape.Api.Models;namespace SecureEscape.Api.Data{    public class AppDbContext : DbContext    {        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)        {        }        public DbSet<AdminUser> AdminUsers { get; set; }        public DbSet<Alert> Alerts { get; set; }        public DbSet<AlertAction> AlertActions { get; set; }        public DbSet<ApiClient> ApiClients { get; set; }        public DbSet<AuditLog> AuditLogs { get; set; }        public DbSet<AuthCredential> AuthCredentials { get; set; }        public DbSet<BankAccount> BankAccounts { get; set; }        public DbSet<BankIntegration> BankIntegrations { get; set; }        public DbSet<BankTransaction> BankTransactions { get; set; }        public DbSet<Beneficiary> Beneficiaries { get; set; }        public DbSet<Card> Cards { get; set; }        public DbSet<DecoyProfile> DecoyProfiles { get; set; }        public DbSet<EmergencyContact> EmergencyContacts { get; set; }        public DbSet<LocationEvent> LocationEvents { get; set; }        public DbSet<NotificationAttempt> NotificationAttempts { get; set; }        public DbSet<RiskEvaluation> RiskEvaluations { get; set; }        public DbSet<RiskZone> RiskZones { get; set; }        public DbSet<SecureEscapeEnrollment> SecureEscapeEnrollments { get; set; }        public DbSet<SessionEvidence> SessionEvidence { get; set; }        public DbSet<TwoFactorLoginChallenge> TwoFactorLoginChallenges { get; set; }        public DbSet<User> Users { get; set; }        public DbSet<UserMessage> UserMessages { get; set; }        public DbSet<UserSession> UserSessions { get; set; }        protected override void OnModelCreating(ModelBuilder modelBuilder)        {            base.OnModelCreating(modelBuilder);            ConfigureEnums(modelBuilder);            ConfigureIndexes(modelBuilder);            ConfigureRelationships(modelBuilder);        }        private static void ConfigureEnums(ModelBuilder modelBuilder)        {            modelBuilder.Entity<AdminUser>()                .Property(x => x.AdminRole)                .HasConversion<string>();            modelBuilder.Entity<AdminUser>()                .Property(x => x.ActivityStatus)                .HasConversion<string>();            modelBuilder.Entity<Alert>()                .Property(x => x.Type)                .HasConversion<string>();            modelBuilder.Entity<Alert>()                .Property(x => x.Severity)                .HasConversion<string>();            modelBuilder.Entity<Alert>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<AlertAction>()                .Property(x => x.ActionType)                .HasConversion<string>();            modelBuilder.Entity<ApiClient>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<AuditLog>()                .Property(x => x.EventType)                .HasConversion<string>();            modelBuilder.Entity<BankAccount>()                .Property(x => x.AccountType)                .HasConversion<string>();            modelBuilder.Entity<BankAccount>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<BankIntegration>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<BankTransaction>()                .Property(x => x.TransactionType)                .HasConversion<string>();            modelBuilder.Entity<BankTransaction>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<BankTransaction>()                .Property(x => x.RiskLevel)                .HasConversion<string>();            modelBuilder.Entity<Beneficiary>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<Card>()                .Property(x => x.CardType)                .HasConversion<string>();            modelBuilder.Entity<Card>()                .Property(x => x.CardStatus)                .HasConversion<string>();            modelBuilder.Entity<DecoyProfile>()                .Property(x => x.ProfileType)                .HasConversion<string>();            modelBuilder.Entity<LocationEvent>()                .Property(x => x.LocationSource)                .HasConversion<string>();            modelBuilder.Entity<NotificationAttempt>()                .Property(x => x.Channel)                .HasConversion<string>();            modelBuilder.Entity<NotificationAttempt>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<RiskEvaluation>()                .Property(x => x.RiskLevel)                .HasConversion<string>();            modelBuilder.Entity<RiskZone>()                .Property(x => x.RiskLevel)                .HasConversion<string>();            modelBuilder.Entity<SecureEscapeEnrollment>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<TwoFactorLoginChallenge>()                .Property(x => x.Purpose)                .HasConversion<string>();            modelBuilder.Entity<User>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<UserSession>()                .Property(x => x.Mode)                .HasConversion<string>();            modelBuilder.Entity<UserSession>()                .Property(x => x.Status)                .HasConversion<string>();            modelBuilder.Entity<UserSession>()                .Property(x => x.CaseStatus)                .HasConversion<string>();            modelBuilder.Entity<UserSession>()                .Property(x => x.ManagerReviewStatus)                .HasConversion<string>();        }        private static void ConfigureIndexes(ModelBuilder modelBuilder)        {            modelBuilder.Entity<BankIntegration>()                .HasIndex(x => x.BankCode)                .IsUnique();            modelBuilder.Entity<ApiClient>()                .HasIndex(x => x.ClientId)                .IsUnique();            modelBuilder.Entity<User>()                .HasIndex(x => new { x.BankIntegrationId, x.BankCustomerId })                .IsUnique();            modelBuilder.Entity<User>()                .HasIndex(x => x.Email)                .IsUnique();            modelBuilder.Entity<AuthCredential>()                .HasIndex(x => x.UserId)                .IsUnique();            modelBuilder.Entity<SecureEscapeEnrollment>()                .HasIndex(x => x.UserId)                .IsUnique();            modelBuilder.Entity<BankAccount>()                .HasIndex(x => x.AccountNumber)                .IsUnique();            modelBuilder.Entity<BankTransaction>()                .HasIndex(x => x.BankReference)                .IsUnique();            modelBuilder.Entity<UserSession>()                .HasIndex(x => x.BankSessionId);            modelBuilder.Entity<Alert>()                .HasIndex(x => x.Status);            modelBuilder.Entity<AuditLog>()                .HasIndex(x => x.CreatedAt);            modelBuilder.Entity<RiskZone>()                .HasIndex(x => x.IsActive);            modelBuilder.Entity<RiskZone>()                .HasIndex(x => x.RiskLevel);            modelBuilder.Entity<UserMessage>()                .HasIndex(x => new { x.UserId, x.DeduplicationKey })                .IsUnique();            modelBuilder.Entity<SessionEvidence>()                .HasIndex(x => x.UserSessionId);            modelBuilder.Entity<SessionEvidence>()                .HasIndex(x => x.BankTransactionId);            modelBuilder.Entity<TwoFactorLoginChallenge>()                .HasIndex(x => x.ChallengeTokenHash)                .IsUnique();            modelBuilder.Entity<TwoFactorLoginChallenge>()                .HasIndex(x => x.UserId);            modelBuilder.Entity<TwoFactorLoginChallenge>()                .HasIndex(x => x.UserSessionId);            modelBuilder.Entity<TwoFactorLoginChallenge>()                .HasIndex(x => x.ExpiresAt);        }        private static void ConfigureRelationships(ModelBuilder modelBuilder)        {            modelBuilder.Entity<BankIntegration>()                .HasMany(x => x.Users)                .WithOne(x => x.BankIntegration)                .HasForeignKey(x => x.BankIntegrationId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<BankIntegration>()                .HasMany(x => x.ApiClients)                .WithOne(x => x.BankIntegration)                .HasForeignKey(x => x.BankIntegrationId)                .OnDelete(DeleteBehavior.Cascade);            modelBuilder.Entity<BankIntegration>()                .HasMany<AdminUser>()                .WithOne(x => x.BankIntegration)                .HasForeignKey(x => x.BankIntegrationId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<User>()                .HasOne(x => x.AuthCredential)                .WithOne(x => x.User)                .HasForeignKey<AuthCredential>(x => x.UserId)                .OnDelete(DeleteBehavior.Cascade);            modelBuilder.Entity<User>()                .HasOne(x => x.SecureEscapeEnrollment)                .WithOne(x => x.User)                .HasForeignKey<SecureEscapeEnrollment>(x => x.UserId)                .OnDelete(DeleteBehavior.Cascade);            modelBuilder.Entity<User>()                .HasMany(x => x.BankAccounts)                .WithOne(x => x.User)                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<User>()                .HasMany(x => x.Cards)                .WithOne(x => x.User)                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<User>()                .HasMany(x => x.Beneficiaries)                .WithOne(x => x.User)                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<User>()                .HasMany(x => x.Sessions)                .WithOne(x => x.User)                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<User>()                .HasMany(x => x.DecoyProfiles)                .WithOne(x => x.User)                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<User>()                .HasMany(x => x.Alerts)                .WithOne(x => x.User)                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<User>()                .HasMany(x => x.EmergencyContacts)                .WithOne(x => x.User)                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Cascade);            modelBuilder.Entity<BankAccount>()                .HasMany(x => x.Cards)                .WithOne(x => x.BankAccount)                .HasForeignKey(x => x.BankAccountId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<BankAccount>()                .HasMany(x => x.Transactions)                .WithOne(x => x.BankAccount)                .HasForeignKey(x => x.BankAccountId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<Beneficiary>()                .HasMany(x => x.Transactions)                .WithOne(x => x.Beneficiary)                .HasForeignKey(x => x.BeneficiaryId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<UserSession>()                .HasMany(x => x.Transactions)                .WithOne(x => x.UserSession)                .HasForeignKey(x => x.UserSessionId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<UserSession>()                .HasMany(x => x.Alerts)                .WithOne(x => x.UserSession)                .HasForeignKey(x => x.UserSessionId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<UserSession>()                .HasMany(x => x.LocationEvents)                .WithOne(x => x.UserSession)                .HasForeignKey(x => x.UserSessionId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<UserSession>()                .HasMany(x => x.RiskEvaluations)                .WithOne(x => x.UserSession)                .HasForeignKey(x => x.UserSessionId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<UserSession>()                .HasMany(x => x.AuditLogs)                .WithOne(x => x.UserSession)                .HasForeignKey(x => x.UserSessionId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<UserSession>()                .HasOne(s => s.AssignedAdminUser)                .WithMany()                .HasForeignKey(s => s.AssignedAdminUserId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<BankTransaction>()                .HasOne(x => x.User)                .WithMany()                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<BankTransaction>()                .HasMany(x => x.RiskEvaluations)                .WithOne(x => x.BankTransaction)                .HasForeignKey(x => x.BankTransactionId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<UserSession>()                .HasMany(x => x.AlertActions)                .WithOne(x => x.UserSession)                .HasForeignKey(x => x.UserSessionId)                .OnDelete(DeleteBehavior.Cascade);            modelBuilder.Entity<UserSession>()                .HasMany(x => x.Evidence)                .WithOne(x => x.UserSession)                .HasForeignKey(x => x.UserSessionId)                .OnDelete(DeleteBehavior.Restrict);            modelBuilder.Entity<SessionEvidence>()                .HasOne(x => x.BankTransaction)                .WithMany()                .HasForeignKey(x => x.BankTransactionId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<Alert>()                .HasMany(x => x.LocationEvents)                .WithOne(x => x.Alert)                .HasForeignKey(x => x.AlertId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<Alert>()                .HasMany(x => x.NotificationAttempts)                .WithOne(x => x.Alert)                .HasForeignKey(x => x.AlertId)                .OnDelete(DeleteBehavior.Cascade);            modelBuilder.Entity<AdminUser>()                .HasMany(x => x.AlertActions)                .WithOne(x => x.AdminUser)                .HasForeignKey(x => x.AdminUserId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<AdminUser>()                .HasMany(x => x.AuditLogs)                .WithOne(x => x.AdminUser)                .HasForeignKey(x => x.AdminUserId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<User>()                .HasMany(x => x.AuditLogs)                .WithOne(x => x.User)                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.SetNull);            modelBuilder.Entity<TwoFactorLoginChallenge>()                .HasOne(x => x.User)                .WithMany()                .HasForeignKey(x => x.UserId)                .OnDelete(DeleteBehavior.Cascade);            modelBuilder.Entity<TwoFactorLoginChallenge>()                .HasOne(x => x.UserSession)                .WithMany()                .HasForeignKey(x => x.UserSessionId)                .OnDelete(DeleteBehavior.Cascade);            modelBuilder.Entity<Alert>()                .Ignore(x => x.AuditLogs);            modelBuilder.Entity<BankTransaction>()                .Ignore(x => x.AuditLogs);        }    }}

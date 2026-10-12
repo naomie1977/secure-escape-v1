@@ -1,77 +1,80 @@
-{
-  "expo": {
-    "name": "secure-escape-mobile",
-    "slug": "secure-escape-mobile",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "secureescapemobile",
-    "userInterfaceStyle": "automatic",
-    "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSFaceIDUsageDescription": "Secure Escape uses Face ID to verify your identity as a second authentication factor.",
-        "ITSAppUsesNonExemptEncryption": false
-      },
-      "bundleIdentifier": "com.secureescape.app"
-    },
-    "android": {
-      "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.READ_CONTACTS",
-        "android.permission.WRITE_CONTACTS",
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
-      ],
-      "package": "com.secureescape.app"
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
-        }
-      ],
-      "expo-secure-store",
-      [
-        "expo-contacts",
-        {
-          "contactsPermission": "Allow Secure Escape to access your contacts so you can add emergency contacts."
-        }
-      ],
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "Allow Secure Escape to use Face ID to verify your identity as a second authentication factor."
-        }
-      ],
-      "expo-font",
-      "expo-image",
-      "expo-status-bar",
-      "expo-web-browser",
-      "expo-notifications"
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "64d5147c-d9d8-43fb-982b-0196cb664c0c"
-      }
-    },
-    "owner": "morena00"
-  }
+﻿{
+    "expo":  {
+                 "name":  "secure-escape-mobile",
+                 "slug":  "secure-escape-mobile",
+                 "version":  "1.0.0",
+                 "orientation":  "portrait",
+                 "icon":  "./assets/images/secure-escape-icon.jpeg",
+                 "scheme":  "secureescapemobile",
+                 "userInterfaceStyle":  "automatic",
+                 "ios":  {
+                             "supportsTablet":  true,
+                             "infoPlist":  {
+                                               "NSFaceIDUsageDescription":  "Secure Escape uses Face ID to verify your identity as a second authentication factor.",
+                                               "ITSAppUsesNonExemptEncryption":  false
+                                           },
+                             "bundleIdentifier":  "com.secureescape.app"
+                         },
+                 "android":  {
+                                 "predictiveBackGestureEnabled":  false,
+                                 "permissions":  [
+                                                     "android.permission.READ_CONTACTS",
+                                                     "android.permission.WRITE_CONTACTS",
+                                                     "android.permission.USE_BIOMETRIC",
+                                                     "android.permission.USE_FINGERPRINT"
+                                                 ],
+                                 "package":  "com.secureescape.app",
+                                 "adaptiveIcon":  {
+                                                      "foregroundImage":  "./assets/images/secure-escape-icon.jpeg",
+                                                      "backgroundColor":  "#FFFFFF"
+                                                  }
+                             },
+                 "web":  {
+                             "output":  "static",
+                             "favicon":  "./assets/images/favicon.png"
+                         },
+                 "plugins":  [
+                                 "expo-router",
+                                 "expo-secure-store",
+                                 [
+                                     "expo-contacts",
+                                     {
+                                         "contactsPermission":  "Allow Secure Escape to access your contacts so you can add emergency contacts."
+                                     }
+                                 ],
+                                 [
+                                     "expo-local-authentication",
+                                     {
+                                         "faceIDPermission":  "Allow Secure Escape to use Face ID to verify your identity as a second authentication factor."
+                                     }
+                                 ],
+                                 "expo-font",
+                                 "expo-image",
+                                 "expo-status-bar",
+                                 "expo-web-browser",
+                                 "expo-notifications",
+                                 [
+                                     "expo-splash-screen",
+                                     {
+                                         "image":  "./assets/images/secure-escape-splash.png",
+                                         "imageWidth":  300,
+                                         "resizeMode":  "contain",
+                                         "backgroundColor":  "#FFFFFF"
+                                     }
+                                 ]
+                             ],
+                 "experiments":  {
+                                     "typedRoutes":  true,
+                                     "reactCompiler":  true
+                                 },
+                 "extra":  {
+                               "router":  {
+
+                                          },
+                               "eas":  {
+                                           "projectId":  "64d5147c-d9d8-43fb-982b-0196cb664c0c"
+                                       }
+                           },
+                 "owner":  "morena00"
+             }
 }

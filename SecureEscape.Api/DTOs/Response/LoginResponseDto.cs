@@ -15,4 +15,29 @@ public class LoginResponseDto
     public string SessionMode { get; set; } = string.Empty;
 
     public bool IsDuress { get; set; }
+
+    /*
+        True when the user has already enrolled authenticator 2FA
+        and must enter their current six-digit authenticator code.
+    */
+    public bool RequiresTwoFactor { get; set; }
+
+    /*
+        True when the user has not yet enrolled authenticator 2FA
+        and must complete first-time authenticator setup before
+        receiving an authenticated JWT.
+    */
+    public bool RequiresTwoFactorSetup { get; set; }
+
+    /*
+        Temporary challenge used only for an already-enrolled
+        user's authenticator verification.
+    */
+    public string TwoFactorChallengeToken { get; set; } = string.Empty;
+
+    /*
+        Temporary challenge used only for first-time authenticator
+        enrollment. This is not the TOTP secret.
+    */
+    public string TwoFactorSetupChallengeToken { get; set; } = string.Empty;
 }

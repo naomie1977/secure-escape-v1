@@ -56,6 +56,7 @@ public class EmergencyContactService : IEmergencyContactService
             UserId = currentUser.UserId,
             FullName = request.FullName.Trim(),
             PhoneNumber = request.PhoneNumber.Trim(),
+            Email = request.Email.Trim(),
             Relationship = request.Relationship.Trim(),
             IsPrimary = request.IsPrimary,
             NotifyOnDuress = request.NotifyOnDuress,
@@ -103,6 +104,7 @@ public class EmergencyContactService : IEmergencyContactService
 
         contact.FullName = request.FullName.Trim();
         contact.PhoneNumber = request.PhoneNumber.Trim();
+        contact.Email = request.Email.Trim();
         contact.Relationship = request.Relationship.Trim();
         contact.IsPrimary = request.IsPrimary;
         contact.NotifyOnDuress = request.NotifyOnDuress;
@@ -149,6 +151,7 @@ public class EmergencyContactService : IEmergencyContactService
         Id = c.Id,
         FullName = c.FullName,
         PhoneNumber = c.PhoneNumber,
+        Email = c.Email,
         Relationship = c.Relationship,
         IsPrimary = c.IsPrimary,
         NotifyOnDuress = c.NotifyOnDuress,

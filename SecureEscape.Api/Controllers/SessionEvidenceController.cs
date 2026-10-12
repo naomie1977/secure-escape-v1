@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SecureEscape.Api.Data;
@@ -14,6 +14,7 @@ namespace SecureEscape.Api.Controllers
     public class SessionEvidenceController : ControllerBase
     {
         private const long MaxPhotoSizeBytes = 10 * 1024 * 1024;
+        private const long MaxVideoSizeBytes = 100 * 1024 * 1024;
 
         private static readonly HashSet<string> AllowedContentTypes =
             new(StringComparer.OrdinalIgnoreCase)
@@ -24,7 +25,13 @@ namespace SecureEscape.Api.Controllers
                 "image/heic",
                 "image/heif"
             };
-
+        private static readonly HashSet<string> AllowedVideoContentTypes =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                "video/mp4",
+                "video/quicktime",
+                "video/webm"
+            };
         private readonly AppDbContext _dbContext;
         private readonly ICurrentUserService _currentUserService;
         private readonly IWebHostEnvironment _environment;
@@ -191,6 +198,148 @@ namespace SecureEscape.Api.Controllers
             }
         }
 
+        [HttpPost("screen-recording")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(MaxVideoSizeBytes)]
+        public async Task<IActionResult> UploadScreenRecording(
+            [FromForm] IFormFile video,
+            CancellationToken cancellationToken)
+        {
+            var currentUser = _currentUserService.GetCurrentUser();
+
+            if (currentUser.SessionMode != SessionMode.Duress)
+            {
+                return NotFound();
+            }
+
+            var session = await _dbContext.UserSessions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.Id == currentUser.UserSessionId &&
+                        x.UserId == currentUser.UserId &&
+                        x.Mode == SessionMode.Duress,
+                    cancellationToken);
+
+            if (session == null)
+            {
+                return NotFound();
+            }
+
+            if (video == null || video.Length == 0)
+            {
+                return BadRequest(new
+                {
+                    message = "A screen recording is required."
+                });
+            }
+
+            if (video.Length > MaxVideoSizeBytes)
+            {
+                return BadRequest(new
+                {
+                    message = "The screen recording is too large."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(video.ContentType) ||
+                !AllowedVideoContentTypes.Contains(video.ContentType))
+            {
+                return BadRequest(new
+                {
+                    message = "Unsupported video format."
+                });
+            }
+
+            var evidenceId = Guid.NewGuid();
+
+            var extension = GetSafeVideoExtension(
+                video.ContentType);
+
+            var storedFileName =
+                $"{evidenceId:N}{extension}";
+
+            var relativeDirectory = Path.Combine(
+                "App_Data",
+                "SessionEvidence",
+                currentUser.UserSessionId.ToString("N"));
+
+            var absoluteDirectory = Path.Combine(
+                _environment.ContentRootPath,
+                relativeDirectory);
+
+            Directory.CreateDirectory(absoluteDirectory);
+
+            var absolutePath = Path.Combine(
+                absoluteDirectory,
+                storedFileName);
+
+            try
+            {
+                await using (var stream = new FileStream(
+                    absolutePath,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None))
+                {
+                    await video.CopyToAsync(
+                        stream,
+                        cancellationToken);
+                }
+
+                var evidence = new SessionEvidence
+                {
+                    Id = evidenceId,
+                    UserSessionId =
+                        currentUser.UserSessionId,
+                    BankTransactionId = null,
+                    EvidenceType = "ScreenRecording",
+                    FileName = storedFileName,
+                    StoragePath = Path.Combine(
+                            relativeDirectory,
+                            storedFileName)
+                        .Replace('\\', '/'),
+                    ContentType = video.ContentType,
+                    FileSizeBytes = video.Length,
+                    CapturedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _dbContext.SessionEvidence.Add(evidence);
+
+                await _dbContext.SaveChangesAsync(
+                    cancellationToken);
+
+                return Ok(new
+                {
+                    id = evidence.Id,
+                    evidenceType = evidence.EvidenceType,
+                    bankTransactionId =
+                        evidence.BankTransactionId,
+                    capturedAt = evidence.CapturedAt
+                });
+            }
+            catch
+            {
+                if (System.IO.File.Exists(absolutePath))
+                {
+                    System.IO.File.Delete(absolutePath);
+                }
+
+                throw;
+            }
+        }
+
+        private static string GetSafeVideoExtension(
+            string contentType)
+        {
+            return contentType.ToLowerInvariant() switch
+            {
+                "video/quicktime" => ".mov",
+                "video/webm" => ".webm",
+                _ => ".mp4"
+            };
+        }
         private static string GetSafeExtension(
             string contentType)
         {

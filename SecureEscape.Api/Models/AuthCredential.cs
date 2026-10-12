@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SecureEscape.Api.Models
 {
@@ -24,6 +20,15 @@ namespace SecureEscape.Api.Models
         [Required]
         [MaxLength(255)]
         public string DuressPinHash { get; set; } = string.Empty;
+
+        // Stores the protected/encrypted TOTP secret.
+        // The raw authenticator secret must never be stored in plaintext.
+        [MaxLength(1000)]
+        public string? TotpSecret { get; set; }
+
+        public bool IsTwoFactorEnabled { get; set; }
+
+        public DateTime? TwoFactorEnabledAt { get; set; }
 
         public DateTime? PasswordUpdatedAt { get; set; }
 

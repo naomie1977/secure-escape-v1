@@ -83,6 +83,7 @@ export default function ManageSecureEscape() {
         id: contact.id,
         fullName: contact.fullName,
         phoneNumber: contact.phoneNumber,
+        email: contact.email ?? "",
         relationship: contact.relationship ?? "",
         isPrimary: String(contact.isPrimary),
       },
@@ -308,6 +309,16 @@ export default function ManageSecureEscape() {
                     <Text style={styles.contactPhone}>
                       {contact.phoneNumber}
                     </Text>
+
+                    {contact.email ? (
+                      <Text style={styles.contactEmail}>
+                        {contact.email}
+                      </Text>
+                    ) : (
+                      <Text style={styles.emailMissing}>
+                        Email address not added
+                      </Text>
+                    )}
 
                     {contact.relationship ? (
                       <Text style={styles.contactRelationship}>
@@ -567,6 +578,19 @@ const styles = StyleSheet.create({
   contactPhone: {
     fontSize: 13,
     color: colors.textSub,
+  },
+
+  contactEmail: {
+    fontSize: 12,
+    color: colors.textSub,
+    marginTop: 2,
+  },
+
+  emailMissing: {
+    fontSize: 12,
+    color: "#B45309",
+    marginTop: 2,
+    fontWeight: "600",
   },
 
   contactRelationship: {

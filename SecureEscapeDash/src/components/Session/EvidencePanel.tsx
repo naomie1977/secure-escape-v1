@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import StatusBadge from "../StatusBadge";
 import type { DuressSessionDetail } from "../../types/session";
 import LocationAddress from "./LocationAddress";
@@ -15,6 +15,10 @@ interface EvidencePanelProps {
 interface LoadedEvidencePhoto {
   evidence: SessionEvidenceItem;
   imageUrl: string;
+}
+interface LoadedEvidenceVideo {
+  evidence: SessionEvidenceItem;
+  videoUrl: string;
 }
 
 export default function EvidencePanel({
@@ -100,7 +104,85 @@ export default function EvidencePanel({
       );
     };
   }, [session.id]);
+  const [videoEvidence, setVideoEvidence] = useState<
+    LoadedEvidenceVideo[]
+  >([]);
 
+  const [loadingVideoEvidence, setLoadingVideoEvidence] =
+    useState(true);
+
+  const [videoEvidenceError, setVideoEvidenceError] =
+    useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const createdUrls: string[] = [];
+
+    const loadVideoEvidence = async () => {
+      try {
+        setLoadingVideoEvidence(true);
+        setVideoEvidenceError("");
+
+        const evidenceItems = await getSessionEvidence(
+          session.id,
+        );
+
+        const screenRecordings = evidenceItems.filter(
+          (item) =>
+            item.evidenceType === "ScreenRecording",
+        );
+
+        const loadedVideos = await Promise.all(
+          screenRecordings.map(async (evidence) => {
+            const videoUrl = await getSessionEvidenceFile(
+              session.id,
+              evidence.id,
+            );
+
+            createdUrls.push(videoUrl);
+
+            return {
+              evidence,
+              videoUrl,
+            };
+          }),
+        );
+
+        if (cancelled) {
+          createdUrls.forEach((url) =>
+            URL.revokeObjectURL(url),
+          );
+          return;
+        }
+
+        setVideoEvidence(loadedVideos);
+      } catch (err) {
+        if (!cancelled) {
+          setVideoEvidence([]);
+
+          setVideoEvidenceError(
+            err instanceof Error
+              ? err.message
+              : "Video evidence could not be loaded.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingVideoEvidence(false);
+        }
+      }
+    };
+
+    loadVideoEvidence();
+
+    return () => {
+      cancelled = true;
+
+      createdUrls.forEach((url) =>
+        URL.revokeObjectURL(url),
+      );
+    };
+  }, [session.id]);
   const sortedLocations = [...session.locations].sort(
     (a, b) =>
       new Date(b.capturedAt).getTime() -
@@ -338,7 +420,153 @@ export default function EvidencePanel({
       )}
     </div>
   );
+  const videoEvidenceBlock = (
+    <div className="dashboard-panel overflow-hidden">
+      <div className="dashboard-panel-header">
+        <div>
+          <p className="eyebrow">
+            Visual evidence
+          </p>
 
+          <h2 className="panel-heading">
+            Video Evidence
+          </h2>
+
+          <p className="panel-description">
+            Screen recordings securely captured during this
+            duress session.
+          </p>
+        </div>
+
+        <span className="panel-count">
+          {loadingVideoEvidence
+            ? "Loading"
+            : `${videoEvidence.length} ${
+                videoEvidence.length === 1
+                  ? "video"
+                  : "videos"
+              }`}
+        </span>
+      </div>
+
+      {loadingVideoEvidence ? (
+        <div className="px-6 py-10 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[#1769AA]" />
+
+          <p className="mt-4 font-medium text-slate-600">
+            Loading video evidence...
+          </p>
+
+          <p className="mt-1 text-sm text-slate-400">
+            Retrieving protected incident evidence.
+          </p>
+        </div>
+      ) : videoEvidenceError ? (
+        <div className="px-6 py-8">
+          <div className="border border-red-200 bg-red-50 px-4 py-4">
+            <p className="text-sm font-semibold text-red-800">
+              Video evidence could not be loaded
+            </p>
+
+            <p className="mt-1 break-words text-xs leading-5 text-red-600">
+              {videoEvidenceError}
+            </p>
+          </div>
+        </div>
+      ) : videoEvidence.length === 0 ? (
+        <div className="px-6 py-10 text-center">
+          <p className="font-medium text-slate-600">
+            No video evidence available
+          </p>
+
+          <p className="mt-1 text-sm text-slate-400">
+            No screen-recording evidence is associated with
+            this incident.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 p-5">
+          {videoEvidence.map(
+            ({ evidence, videoUrl }) => (
+              <article
+                key={evidence.id}
+                className="overflow-hidden border border-[#DCE6EE] bg-white"
+              >
+                <div className="relative bg-black">
+                  <video
+                    src={videoUrl}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    className="max-h-[620px] w-full"
+                  >
+                    Your browser does not support video playback.
+                  </video>
+
+                  <div className="absolute left-3 top-3 border border-blue-200 bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#1769AA] shadow-sm">
+                    Screen recording
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+                        Captured
+                      </p>
+
+                      <p className="mt-1 text-sm font-semibold text-[#102A43]">
+                        {new Date(
+                          evidence.capturedAt,
+                        ).toLocaleString(
+                          "en-ZA",
+                        )}
+                      </p>
+                    </div>
+
+                    <span className="w-fit border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700">
+                      Stored
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 gap-3 border-t border-[#E5EDF3] pt-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                        Evidence type
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-slate-700">
+                        Screen recording
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                        File size
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-slate-700">
+                        {formatFileSize(
+                          evidence.fileSizeBytes,
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 border border-[#DCE6EE] bg-[#F8FBFD] px-4 py-3">
+                    <p className="text-xs text-slate-500">
+                      This recording is associated with the
+                      incident session.
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
   const locationHistoryBlock = (
     <div className="dashboard-panel">
       <div className="dashboard-panel-header">
@@ -407,7 +635,7 @@ export default function EvidencePanel({
 
                     <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500">
                       <span>
-                        Accuracy: ±
+                        Accuracy: Â±
                         {location.accuracyMeters} m
                       </span>
 
@@ -743,6 +971,7 @@ export default function EvidencePanel({
       {isLiveSession ? (
         <>
           {currentPhotoEvidenceBlock}
+          {videoEvidenceBlock}
           {locationHistoryBlock}
           {transactionsBlock}
         </>
@@ -750,6 +979,7 @@ export default function EvidencePanel({
         <>
           {transactionsBlock}
           {currentPhotoEvidenceBlock}
+          {videoEvidenceBlock}
           {locationHistoryBlock}
         </>
       )}

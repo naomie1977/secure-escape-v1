@@ -21,6 +21,10 @@ namespace SecureEscape.Api.Enums
         VoucherInvalidated = 16,
         EntityCreated = 17,
         EntityUpdated = 18,
-        EntityDeleted = 19
+        EntityDeleted = 19,
+
+        TwoFactorChallengeCreated = 20,
+        TwoFactorVerificationSucceeded = 21,
+        TwoFactorVerificationFailed = 22
     }
 }

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/constants/api";
+﻿import { API_BASE_URL } from "@/constants/api";
 import { getAuthToken } from "@/services/tokenStore";
 import * as FileSystem from "expo-file-system/legacy";
 import {
@@ -139,6 +139,69 @@ export async function uploadCurrentPhotoEvidence(
   }
 }
 
+export async function uploadScreenRecordingEvidence(
+  videoUri: string,
+): Promise<void> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error(
+      "No auth token found. Please log in again.",
+    );
+  }
+
+  const normalizedUri = videoUri.toLowerCase();
+
+  const mimeType = normalizedUri.endsWith(".mov")
+    ? "video/quicktime"
+    : normalizedUri.endsWith(".webm")
+      ? "video/webm"
+      : "video/mp4";
+
+  const uploadResult = await FileSystem.uploadAsync(
+    `${API_BASE_URL}/api/v1/session-evidence/screen-recording`,
+    videoUri,
+    {
+      httpMethod: "POST",
+      uploadType:
+        FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: "video",
+      mimeType,
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (
+    uploadResult.status < 200 ||
+    uploadResult.status >= 300
+  ) {
+    let message =
+      "The screen recording could not be saved.";
+
+    if (uploadResult.body) {
+      try {
+        const errorBody = JSON.parse(uploadResult.body);
+
+        if (typeof errorBody.message === "string") {
+          message = errorBody.message;
+        } else if (
+          typeof errorBody.title === "string"
+        ) {
+          message = errorBody.title;
+        }
+      } catch {
+        if (uploadResult.body.trim()) {
+          message = uploadResult.body;
+        }
+      }
+    }
+
+    throw new Error(message);
+  }
+}
 export async function createCashSend(
   request: CreateCashSendRequest,
 ): Promise<CashSendResponse> {

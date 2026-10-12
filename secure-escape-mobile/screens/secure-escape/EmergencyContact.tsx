@@ -27,6 +27,7 @@ type LocalContact = {
   name: string;
   surname: string;
   phone: string;
+  email: string;
   relationship: string;
   isPrimary: boolean;
 };
@@ -42,6 +43,7 @@ export default function EmergencyContact() {
       name: "",
       surname: "",
       phone: "",
+      email: "",
       relationship: "",
       isPrimary: false,
     },
@@ -109,7 +111,8 @@ export default function EmergencyContact() {
       (contact) =>
         contact.name.trim() !== "" &&
         contact.surname.trim() !== "" &&
-        contact.phone.trim() !== "",
+        contact.phone.trim() !== "" &&
+        contact.email.trim() !== "",
     );
 
     setValidContactAdded(hasValid);
@@ -143,16 +146,23 @@ export default function EmergencyContact() {
     checkValidContacts(newContacts);
   };
 
+  const isValidEmail = (email: string) => {
+    const trimmedEmail = email.trim();
+
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+  };
+
   const getValidationMessage = () => {
     const completeContacts = contacts.filter(
       (contact) =>
         contact.name.trim() &&
         contact.surname.trim() &&
-        contact.phone.trim(),
+        contact.phone.trim() &&
+        contact.email.trim(),
     );
 
     if (completeContacts.length === 0) {
-      return "Please fill in at least one complete emergency contact (name, surname, phone number).";
+      return "Please fill in at least one complete emergency contact (name, surname, phone number, and email address).";
     }
 
     for (const contact of completeContacts) {
@@ -164,6 +174,14 @@ export default function EmergencyContact() {
 
       if (contact.phone.trim().length > 30) {
         return "Emergency contact phone number cannot be more than 30 characters.";
+      }
+
+      if (contact.email.trim().length > 254) {
+        return "Emergency contact email address cannot be more than 254 characters.";
+      }
+
+      if (!isValidEmail(contact.email)) {
+        return `Please enter a valid email address for ${fullName}.`;
       }
 
       if (contact.relationship.trim().length > 50) {
@@ -208,13 +226,15 @@ export default function EmergencyContact() {
         (contact) =>
           contact.name.trim() &&
           contact.surname.trim() &&
-          contact.phone.trim(),
+          contact.phone.trim() &&
+          contact.email.trim(),
       );
 
       for (const contact of validContacts) {
         await addEmergencyContact({
           fullName: `${contact.name.trim()} ${contact.surname.trim()}`,
           phoneNumber: contact.phone.trim(),
+          email: contact.email.trim(),
           relationship: contact.relationship.trim(),
           isPrimary: contact.isPrimary,
           notifyOnDuress: true,
@@ -281,6 +301,7 @@ export default function EmergencyContact() {
       name: "",
       surname: "",
       phone: "",
+      email: "",
       relationship: "",
       isPrimary: false,
     };
@@ -315,6 +336,8 @@ export default function EmergencyContact() {
       const lastName = picked.lastName?.trim() ?? "";
       const phoneNumber =
         picked.phoneNumbers?.[0]?.number?.trim() ?? "";
+      const emailAddress =
+        picked.emails?.[0]?.email?.trim() ?? "";
 
       if (!phoneNumber) {
         showError(
@@ -327,7 +350,8 @@ export default function EmergencyContact() {
         (contact) =>
           !contact.name.trim() &&
           !contact.surname.trim() &&
-          !contact.phone.trim(),
+          !contact.phone.trim() &&
+          !contact.email.trim(),
       );
 
       let newContacts: LocalContact[];
@@ -340,6 +364,7 @@ export default function EmergencyContact() {
                 name: firstName,
                 surname: lastName,
                 phone: phoneNumber,
+                email: emailAddress,
               }
             : contact,
         );
@@ -356,6 +381,7 @@ export default function EmergencyContact() {
             name: firstName,
             surname: lastName,
             phone: phoneNumber,
+            email: emailAddress,
             relationship: "",
             isPrimary: false,
           },
@@ -501,6 +527,24 @@ export default function EmergencyContact() {
                 maxLength={30}
                 keyboardType="phone-pad"
                 placeholder="+27 XX XXX XXXX"
+                placeholderTextColor="#aaa"
+                editable={!isSaving}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Email Address</Text>
+              <TextInput
+                style={styles.input}
+                value={contact.email}
+                onChangeText={(text) =>
+                  updateContact(contact.id, "email", text)
+                }
+                maxLength={254}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="name@example.com"
                 placeholderTextColor="#aaa"
                 editable={!isSaving}
               />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { getProfileMe } from "@/services/profileService";
 import { ProfileMeResponse } from "@/types/profile";
 import {
@@ -14,6 +14,12 @@ import { colors } from "@/utils/theme";
 import { useRouter } from "expo-router";
 import { getEnrollmentStatus } from "@/services/secureEscapeService";
 import { logout } from "@/services/authService";
+import { uploadScreenRecordingEvidence } from "@/services/transactionServices";
+import {
+  clearCompletedScreenRecording,
+  isScreenRecording,
+  stopScreenRecording,
+} from "@/modules/secure-escape-screen-recorder/src/SecureEscapeScreenRecorder";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -27,7 +33,27 @@ export default function SettingsScreen() {
   }, []);
 
   const logoutButton = async () => {
+    setError("");
+
     try {
+      const recordingActive = await isScreenRecording();
+
+      if (recordingActive) {
+        try {
+          const recording = await stopScreenRecording();
+
+          if (recording.stopped && recording.uri) {
+            await uploadScreenRecordingEvidence(recording.uri);
+            clearCompletedScreenRecording();
+          }
+        } catch (evidenceError) {
+          console.error(
+            "Failed to finalize or upload screen-recording evidence:",
+            evidenceError,
+          );
+        }
+      }
+
       await logout();
 
       setTimeout(() => {

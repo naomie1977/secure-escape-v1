@@ -253,6 +253,9 @@ namespace SecureEscape.Api.Migrations
                     b.Property<DateTime?>("DuressPinUpdatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<bool>("IsTwoFactorEnabled")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("NormalPinHash")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -267,6 +270,13 @@ namespace SecureEscape.Api.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("PinUpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("TotpSecret")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime?>("TwoFactorEnabledAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -655,6 +665,11 @@ namespace SecureEscape.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("varchar(254)");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -954,6 +969,56 @@ namespace SecureEscape.Api.Migrations
                     b.HasIndex("UserSessionId");
 
                     b.ToTable("SessionEvidence");
+                });
+
+            modelBuilder.Entity("SecureEscape.Api.Models.TwoFactorLoginChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ChallengeTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("FailedAttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("UserSessionId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChallengeTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserSessionId");
+
+                    b.ToTable("TwoFactorLoginChallenges");
                 });
 
             modelBuilder.Entity("SecureEscape.Api.Models.User", b =>
@@ -1429,6 +1494,25 @@ namespace SecureEscape.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("BankTransaction");
+
+                    b.Navigation("UserSession");
+                });
+
+            modelBuilder.Entity("SecureEscape.Api.Models.TwoFactorLoginChallenge", b =>
+                {
+                    b.HasOne("SecureEscape.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SecureEscape.Api.Models.UserSession", "UserSession")
+                        .WithMany()
+                        .HasForeignKey("UserSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
 
                     b.Navigation("UserSession");
                 });

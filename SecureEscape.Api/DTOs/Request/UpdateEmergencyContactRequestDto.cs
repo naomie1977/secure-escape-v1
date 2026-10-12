@@ -12,6 +12,11 @@ public class UpdateEmergencyContactRequestDto
     [MaxLength(30)]
     public string PhoneNumber { get; set; } = string.Empty;
 
+    [Required]
+    [EmailAddress]
+    [MaxLength(254)]
+    public string Email { get; set; } = string.Empty;
+
     [MaxLength(50)]
     public string Relationship { get; set; } = string.Empty;
 

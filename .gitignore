@@ -25,3 +25,39 @@ SecureEscape.Api/publish/
 SecureEscape.Api/publish-release/
 # Test results
 TestResults/
+
+# Secure Escape local development / backup artifacts
+*.bak
+*.backup
+*.screen-recording-backup
+*.final-ui-statusbar-backup
+*.branding-backup
+*.import-repair-backup
+*.screen-recording-start-backup
+*.screen-recording-logout-backup
+*.video-test-backup
+*-backup
+*_BACKUP.cs
+*_FULL.txt
+*-current.txt
+
+# Local audit / export artifacts
+*expo-export-log.txt
+*sprint9-mobile-audit.json
+
+# Local deployment artifacts
+azure-publish/
+*.zip
+*.sql
+
+# Local utility/testing projects
+SecureEscape.NotificationInspector/
+
+# Local Git safety backups
+.gitignore.before-design-branch
+
+# Generated build output inside local Expo/native modules
+secure-escape-mobile/modules/**/android/build/
+
+# Native module local backups
+*.before-recorder

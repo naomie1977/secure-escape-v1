@@ -86,6 +86,29 @@ builder.Services.AddScoped<IUserMessageRepository, UserMessageRepository>();
 
 // Services
 builder.Services.AddHttpContextAccessor();
+
+/*
+    Generic HttpClient support is used by NotificationDispatchService
+    for real bank webhook delivery.
+*/
+builder.Services.AddHttpClient();
+
+/*
+    TwilioSmsService performs emergency-contact SMS delivery.
+
+    Twilio credentials are read from configuration at runtime and must
+    not be hard-coded into source control.
+*/
+builder.Services.AddScoped<TwilioSmsService>();
+
+/*
+    EmailService performs server-side emergency-contact email delivery.
+
+    SMTP credentials are read from configuration at runtime and must
+    not be hard-coded into source control.
+*/
+builder.Services.AddScoped<EmailService>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRiskService, RiskService>();
 builder.Services.AddScoped<IRiskZoneService, RiskZoneService>();
@@ -99,6 +122,7 @@ builder.Services.AddHttpClient<IReverseGeocodingService, ReverseGeocodingService
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IAdminAlertService, AdminAlertService>();
 builder.Services.AddScoped<IHashingService, BCryptHashingService>();
+builder.Services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IBeneficiaryService, BeneficiaryService>();

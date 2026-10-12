@@ -23,6 +23,7 @@ export default function EditEmergencyContact() {
     id?: string;
     fullName?: string;
     phoneNumber?: string;
+    email?: string;
     relationship?: string;
     isPrimary?: string;
   }>();
@@ -31,6 +32,7 @@ export default function EditEmergencyContact() {
   const [phoneNumber, setPhoneNumber] = useState(
     params.phoneNumber ?? "",
   );
+  const [email, setEmail] = useState(params.email ?? "");
   const [relationship, setRelationship] = useState(
     params.relationship ?? "",
   );
@@ -38,6 +40,10 @@ export default function EditEmergencyContact() {
     params.isPrimary === "true",
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  const isValidEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  };
 
   const handleSave = async () => {
     if (!params.id) {
@@ -56,10 +62,58 @@ export default function EditEmergencyContact() {
       return;
     }
 
+    if (fullName.trim().length > 100) {
+      Alert.alert(
+        "Name too long",
+        "The emergency contact's full name cannot be more than 100 characters.",
+      );
+      return;
+    }
+
     if (!phoneNumber.trim()) {
       Alert.alert(
         "Phone number required",
         "Please enter the emergency contact's phone number.",
+      );
+      return;
+    }
+
+    if (phoneNumber.trim().length > 30) {
+      Alert.alert(
+        "Phone number too long",
+        "The emergency contact's phone number cannot be more than 30 characters.",
+      );
+      return;
+    }
+
+    if (!email.trim()) {
+      Alert.alert(
+        "Email address required",
+        "Please enter the emergency contact's email address.",
+      );
+      return;
+    }
+
+    if (email.trim().length > 254) {
+      Alert.alert(
+        "Email address too long",
+        "The emergency contact's email address cannot be more than 254 characters.",
+      );
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      Alert.alert(
+        "Invalid email address",
+        "Please enter a valid emergency contact email address.",
+      );
+      return;
+    }
+
+    if (relationship.trim().length > 50) {
+      Alert.alert(
+        "Relationship too long",
+        "The relationship cannot be more than 50 characters.",
       );
       return;
     }
@@ -74,6 +128,7 @@ export default function EditEmergencyContact() {
       await updateEmergencyContact(params.id, {
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
+        email: email.trim(),
         relationship: relationship.trim(),
         isPrimary,
         notifyOnDuress: true,
@@ -148,6 +203,7 @@ export default function EditEmergencyContact() {
           onChangeText={setFullName}
           placeholder="Full name"
           placeholderTextColor={colors.textSub}
+          maxLength={100}
           editable={!isSaving}
         />
 
@@ -160,6 +216,22 @@ export default function EditEmergencyContact() {
           placeholder="Phone number"
           placeholderTextColor={colors.textSub}
           keyboardType="phone-pad"
+          maxLength={30}
+          editable={!isSaving}
+        />
+
+        <Text style={styles.label}>Email Address</Text>
+
+        <TextInput
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="name@example.com"
+          placeholderTextColor={colors.textSub}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={254}
           editable={!isSaving}
         />
 
@@ -171,6 +243,7 @@ export default function EditEmergencyContact() {
           onChangeText={setRelationship}
           placeholder="e.g. Parent, sibling, friend"
           placeholderTextColor={colors.textSub}
+          maxLength={50}
           editable={!isSaving}
         />
 
