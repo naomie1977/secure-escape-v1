@@ -1,138 +1,155 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 
+import { colors } from "@/utils/theme";
 import {
   getMessages,
   markMessageAsRead,
-  type UserMessage,
 } from "@/services/messageService";
-import { colors } from "@/utils/theme";
+
+// Local design values so this screen does not depend
+// on extra theme exports.
+const PURPLE = "#25145F";
+const WHITE = "#FFFFFF";
+const LINE = "#E9E8F0";
+const PALE_PURPLE = "#F3F0FF";
+
+type Message = {
+  id: string;
+  title: string;
+  body: string;
+  timestamp: Date;
+  read: boolean;
+};
+
+const getMessageMeta = (title: string) => {
+  const normalized = title.toLowerCase();
+
+  if (
+    normalized.includes("security") ||
+    normalized.includes("frozen") ||
+    normalized.includes("suspicious")
+  ) {
+    return {
+      icon: "shield-checkmark-outline" as const,
+      bg: "#FFF4E8",
+      color: "#A85B00",
+    };
+  }
+
+  if (
+    normalized.includes("successful") ||
+    normalized.includes("deposited")
+  ) {
+    return {
+      icon: "checkmark-circle-outline" as const,
+      bg: "#EAF7F0",
+      color: "#168452",
+    };
+  }
+
+  if (
+    normalized.includes("payment") ||
+    normalized.includes("fee")
+  ) {
+    return {
+      icon: "receipt-outline" as const,
+      bg: "#F5F2FF",
+      color: PURPLE,
+    };
+  }
+
+  if (
+    normalized.includes("cashback") ||
+    normalized.includes("feature")
+  ) {
+    return {
+      icon: "sparkles-outline" as const,
+      bg: "#F3F0FF",
+      color: PURPLE,
+    };
+  }
+
+  return {
+    icon: "mail-outline" as const,
+    bg: PALE_PURPLE,
+    color: PURPLE,
+  };
+};
 
 export default function Messages() {
   const router = useRouter();
 
-  const [messages, setMessages] = useState<UserMessage[]>([]);
+  const [messages, setMessages] =
+    useState<Message[]>([]);
+
   const [selectedMessage, setSelectedMessage] =
-    useState<UserMessage | null>(null);
+    useState<Message | null>(null);
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] =
+    useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadMessages = useCallback(async (showLoading = true) => {
+  const loadMessages = useCallback(async () => {
     try {
-      if (showLoading) {
-        setLoading(true);
+      const apiMessages = await getMessages();
+      if (apiMessages && Array.isArray(apiMessages)) {
+        setMessages(
+          apiMessages.map((m) => ({
+            id: m.id,
+            title: m.title,
+            body: m.body,
+            timestamp: new Date(m.createdAt),
+            read: m.isRead,
+          }))
+        );
+      } else {
+        setMessages([]);
       }
-
-      setError(null);
-
-      const result = await getMessages();
-      setMessages(result);
-    } catch (err) {
-      console.error("Failed to load messages:", err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load your messages.",
-      );
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+    } catch {
+      // Retain currently loaded messages on fetch failure
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       void loadMessages();
-    }, [loadMessages]),
+    }, [loadMessages])
   );
 
   const handleRefresh = async () => {
     setRefreshing(true);
-
     try {
-      await loadMessages(false);
+      await loadMessages();
     } finally {
       setRefreshing(false);
     }
   };
 
-  const handleMessagePress = async (message: UserMessage) => {
-    setSelectedMessage(message);
-    setModalVisible(true);
+  const unreadCount = useMemo(
+    () => messages.filter((message) => !message.read).length,
+    [messages]
+  );
 
-    if (message.isRead) {
-      return;
-    }
-
-    try {
-      const updatedMessage = await markMessageAsRead(message.id);
-
-      setMessages((currentMessages) =>
-        currentMessages.map((item) =>
-          item.id === updatedMessage.id ? updatedMessage : item,
-        ),
-      );
-
-      setSelectedMessage(updatedMessage);
-    } catch (err) {
-      console.error("Failed to mark message as read:", err);
-    }
-  };
-
-  /*
-   * The API stores UserMessage timestamps using DateTime.UtcNow.
-   * MySQL/API serialization may return them without a trailing "Z".
-   *
-   * A timestamp such as:
-   * 2026-09-18T19:26:00
-   *
-   * therefore represents 19:26 UTC, not 19:26 local time.
-   *
-   * Adding "Z" when the API did not provide timezone information allows
-   * JavaScript to correctly convert UTC to the phone's local timezone.
-   */
-  const parseApiUtcDate = (timestamp: string) => {
-    const hasTimezone =
-      timestamp.endsWith("Z") ||
-      /[+-]\d{2}:\d{2}$/.test(timestamp);
-
-    return new Date(hasTimezone ? timestamp : `${timestamp}Z`);
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = parseApiUtcDate(timestamp);
-
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-
+  const formatTimestamp = (date: Date) => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMs < 0) {
-      return date.toLocaleDateString();
-    }
 
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
@@ -140,334 +157,454 @@ export default function Messages() {
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays}d ago`;
 
-    return date.toLocaleDateString();
+    return date.toLocaleDateString("en-ZA", {
+      day: "numeric",
+      month: "short",
+    });
   };
 
-  const formatFullTimestamp = (timestamp: string) => {
-    const date = parseApiUtcDate(timestamp);
+  const formatFullTimestamp = (date: Date) =>
+    date.toLocaleString("en-ZA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
 
-    if (Number.isNaN(date.getTime())) {
-      return "";
+  const markAllAsRead = () => {
+    setMessages((prev) =>
+      prev.map((message) => ({
+        ...message,
+        read: true,
+      }))
+    );
+
+    if (selectedMessage) {
+      setSelectedMessage({
+        ...selectedMessage,
+        read: true,
+      });
     }
 
-    return date.toLocaleString();
+    // Mark all unread messages in backend
+    messages
+      .filter((m) => !m.read)
+      .forEach((m) => {
+        void markMessageAsRead(m.id).catch(() => {});
+      });
   };
 
-  const getMessageIcon = (
-    category: string,
-  ): keyof typeof Ionicons.glyphMap => {
-    switch (category.toLowerCase()) {
-      case "areasafety":
-        return "shield-checkmark-outline";
+  const handleMessagePress = (message: Message) => {
+    const updatedMessage = {
+      ...message,
+      read: true,
+    };
 
-      case "security":
-        return "lock-closed-outline";
+    setSelectedMessage(updatedMessage);
+    setModalVisible(true);
 
-      case "transaction":
-        return "swap-horizontal-outline";
-
-      default:
-        return "mail-outline";
-    }
-  };
-
-  const renderMessage = ({ item }: { item: UserMessage }) => (
-    <TouchableOpacity
-      style={[
-        styles.messageItem,
-        !item.isRead && styles.unreadItem,
-      ]}
-      activeOpacity={0.7}
-      onPress={() => void handleMessagePress(item)}
-    >
-      <View style={styles.iconWrapper}>
-        <Ionicons
-          name={getMessageIcon(item.category)}
-          size={24}
-          color={colors.primary}
-        />
-      </View>
-
-      <View style={styles.messageContent}>
-        <View style={styles.messageHeader}>
-          <Text
-            style={[
-              styles.messageTitle,
-              !item.isRead && styles.unreadTitle,
-            ]}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
-
-          <Text style={styles.timestamp}>
-            {formatTimestamp(item.createdAt)}
-          </Text>
-        </View>
-
-        <Text style={styles.messagePreview} numberOfLines={2}>
-          {item.body}
-        </Text>
-      </View>
-
-      {!item.isRead && <View style={styles.unreadDot} />}
-    </TouchableOpacity>
-  );
-
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={colors.primary} />
-
-          <Text style={styles.stateText}>
-            Loading your messages...
-          </Text>
-        </View>
+    if (!message.read) {
+      setMessages((prev) =>
+        prev.map((item) =>
+          item.id === message.id
+            ? updatedMessage
+            : item
+        )
       );
+
+      void markMessageAsRead(message.id).catch(() => {});
     }
+  };
 
-    if (error && messages.length === 0) {
-      return (
-        <View style={styles.centerState}>
-          <View style={styles.stateIcon}>
-            <Ionicons
-              name="cloud-offline-outline"
-              size={30}
-              color={colors.primary}
-            />
-          </View>
+  const handleToggleSelectedRead = () => {
+    if (!selectedMessage) return;
 
-          <Text style={styles.stateTitle}>
-            Messages unavailable
-          </Text>
+    const newReadState = !selectedMessage.read;
 
-          <Text style={styles.stateText}>
-            {error}
-          </Text>
+    setMessages((prev) =>
+      prev.map((item) =>
+        item.id === selectedMessage.id
+          ? {
+              ...item,
+              read: newReadState,
+            }
+          : item
+      )
+    );
 
-          <TouchableOpacity
-            style={styles.retryButton}
-            activeOpacity={0.8}
-            onPress={() => void loadMessages()}
-          >
-            <Ionicons
-              name="refresh"
-              size={18}
-              color="#fff"
-            />
+    setSelectedMessage({
+      ...selectedMessage,
+      read: newReadState,
+    });
+  };
 
-            <Text style={styles.retryButtonText}>
-              Try again
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
+  const renderItem = ({
+    item,
+  }: {
+    item: Message;
+  }) => {
+    const meta = getMessageMeta(item.title);
 
     return (
-      <FlatList
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMessage}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.listContent,
-          messages.length === 0 && styles.emptyListContent,
+      <TouchableOpacity
+        style={[
+          styles.messageRow,
+          !item.read && styles.unreadRow,
         ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void handleRefresh()}
-            tintColor={colors.primary}
+        activeOpacity={0.7}
+        onPress={() => handleMessagePress(item)}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.title}. ${
+          item.read ? "Read" : "Unread"
+        }`}
+      >
+        <View
+          style={[
+            styles.messageIcon,
+            { backgroundColor: meta.bg },
+          ]}
+        >
+          <Ionicons
+            name={meta.icon}
+            size={21}
+            color={meta.color}
           />
-        }
-        ItemSeparatorComponent={() => (
-          <View style={styles.separator} />
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <View style={styles.stateIcon}>
-              <Ionicons
-                name="mail-open-outline"
-                size={32}
-                color={colors.primary}
-              />
-            </View>
+        </View>
 
-            <Text style={styles.stateTitle}>
-              You're all caught up
+        <View style={styles.messageContent}>
+          <View style={styles.messageHeader}>
+            <Text
+              style={[
+                styles.messageTitle,
+                !item.read &&
+                  styles.unreadMessageTitle,
+              ]}
+              numberOfLines={1}
+            >
+              {item.title}
             </Text>
 
-            <Text style={styles.stateText}>
-              Security and account messages will appear here.
+            <Text style={styles.timestamp}>
+              {formatTimestamp(item.timestamp)}
             </Text>
           </View>
-        }
-      />
+
+          <Text
+            style={[
+              styles.messagePreview,
+              !item.read &&
+                styles.unreadMessagePreview,
+            ]}
+            numberOfLines={2}
+          >
+            {item.body}
+          </Text>
+        </View>
+
+        <View style={styles.messageRight}>
+          {!item.read && (
+            <View style={styles.unreadDot} />
+          )}
+
+          <Ionicons
+            name="chevron-forward"
+            size={15}
+            color={colors.textSub}
+          />
+        </View>
+      </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={["#5B8DEF", "#6C63FF"]}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={PURPLE}
+      />
 
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.headerTitle}>
+      {/* PURPLE HEADER */}
+
+      <View style={styles.header}>
+        <View style={styles.appBar}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons
+              name="arrow-back"
+              size={22}
+              color={WHITE}
+            />
+          </TouchableOpacity>
+
+          <Text style={styles.appBarTitle}>
             Messages
           </Text>
 
-          {!loading && messages.length > 0 && (
-            <Text style={styles.headerSubtitle}>
-              {
-                messages.filter(
-                  (message) => !message.isRead,
-                ).length
-              }{" "}
-              unread
-            </Text>
-          )}
+          <TouchableOpacity
+            style={[
+              styles.markAllButton,
+              unreadCount === 0 &&
+                styles.markAllButtonDisabled,
+            ]}
+            onPress={markAllAsRead}
+            disabled={unreadCount === 0}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Mark all messages as read"
+          >
+            <Ionicons
+              name="checkmark-done-outline"
+              size={20}
+              color={WHITE}
+            />
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.headerButton}
-          activeOpacity={0.7}
-          onPress={() => void handleRefresh()}
-          disabled={refreshing}
-        >
-          <Ionicons
-            name="refresh"
-            size={22}
-            color="#fff"
-          />
-        </TouchableOpacity>
-      </LinearGradient>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerEyebrow}>
+            INBOX
+          </Text>
 
-      <View style={styles.whiteCard}>
-        {renderContent()}
+          <Text style={styles.headerHeading}>
+            Your messages
+          </Text>
+
+          <Text style={styles.headerDescription}>
+            Account updates, payment alerts and
+            important security notices.
+          </Text>
+        </View>
+
+        <View style={styles.headerDivider} />
+
+        <View style={styles.headerFooter}>
+          <View style={styles.headerFooterIcon}>
+            <Ionicons
+              name="mail-outline"
+              size={16}
+              color="#E4E1FF"
+            />
+          </View>
+
+          <Text style={styles.headerFooterText}>
+            {unreadCount === 0
+              ? "You're all caught up"
+              : `${unreadCount} unread ${
+                  unreadCount === 1
+                    ? "message"
+                    : "messages"
+                }`}
+          </Text>
+        </View>
       </View>
+
+      {/* MESSAGE LIST */}
+
+      <View style={styles.content}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>
+              Recent messages
+            </Text>
+
+            <Text style={styles.sectionDescription}>
+              Tap a message to read the full update.
+            </Text>
+          </View>
+
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>
+              {messages.length}
+            </Text>
+          </View>
+        </View>
+
+        <FlatList
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[PURPLE]}
+              tintColor={PURPLE}
+            />
+          }
+          contentContainerStyle={[
+            styles.listContent,
+            messages.length === 0 &&
+              styles.emptyListContent,
+          ]}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIcon}>
+                <Ionicons
+                  name="mail-open-outline"
+                  size={28}
+                  color={PURPLE}
+                />
+              </View>
+
+              <Text style={styles.emptyTitle}>
+                No messages
+              </Text>
+
+              <Text style={styles.emptyDescription}>
+                New account updates and notifications
+                will appear here.
+              </Text>
+            </View>
+          }
+        />
+      </View>
+
+      {/* MESSAGE DETAIL BOTTOM SHEET */}
 
       <Modal
         animationType="slide"
         transparent
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent
+        onRequestClose={() =>
+          setModalVisible(false)
+        }
       >
         <View style={styles.modalOverlay}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
-            onPress={() => setModalVisible(false)}
+            onPress={() =>
+              setModalVisible(false)
+            }
           />
 
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />
 
-            {selectedMessage && (
-              <>
-                <View style={styles.modalHeader}>
-                  <View style={styles.modalIconWrapper}>
-                    <Ionicons
-                      name={getMessageIcon(
-                        selectedMessage.category,
-                      )}
-                      size={28}
-                      color={colors.primary}
-                    />
-                  </View>
+            {selectedMessage && (() => {
+              const meta = getMessageMeta(
+                selectedMessage.title
+              );
 
-                  <View style={styles.modalTitleContainer}>
-                    <Text style={styles.modalTitle}>
-                      {selectedMessage.title}
-                    </Text>
-
-                    <Text style={styles.modalCategory}>
-                      {selectedMessage.category === "AreaSafety"
-                        ? "Area Safety"
-                        : selectedMessage.category}
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.modalClose}
-                    onPress={() => setModalVisible(false)}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={24}
-                      color={colors.navy}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={
-                    styles.modalScrollContent
-                  }
-                >
-                  <Text style={styles.modalTimestamp}>
-                    {formatFullTimestamp(
-                      selectedMessage.createdAt,
-                    )}
-                  </Text>
-
-                  <Text style={styles.modalBody}>
-                    {selectedMessage.body}
-                  </Text>
-
-                  {selectedMessage.category ===
-                    "AreaSafety" && (
-                    <View style={styles.safetyNote}>
+              return (
+                <>
+                  <View style={styles.modalHeader}>
+                    <View
+                      style={[
+                        styles.modalIcon,
+                        {
+                          backgroundColor: meta.bg,
+                        },
+                      ]}
+                    >
                       <Ionicons
-                        name="information-circle-outline"
-                        size={20}
-                        color={colors.primary}
+                        name={meta.icon}
+                        size={23}
+                        color={meta.color}
                       />
+                    </View>
 
-                      <Text style={styles.safetyNoteText}>
-                        Area Safety notices are awareness
-                        reminders. Stay aware of your
-                        surroundings and use your usual safety
-                        precautions.
+                    <View style={styles.modalTitleGroup}>
+                      <Text style={styles.modalEyebrow}>
+                        MESSAGE
+                      </Text>
+
+                      <Text style={styles.modalTitle}>
+                        {selectedMessage.title}
                       </Text>
                     </View>
-                  )}
 
-                  <View style={styles.readStatus}>
-                    <Ionicons
-                      name={
-                        selectedMessage.isRead
-                          ? "checkmark-circle"
-                          : "ellipse-outline"
+                    <TouchableOpacity
+                      style={styles.modalClose}
+                      onPress={() =>
+                        setModalVisible(false)
                       }
-                      size={19}
-                      color={colors.primary}
-                    />
-
-                    <Text style={styles.readStatusText}>
-                      {selectedMessage.isRead
-                        ? "Read"
-                        : "Unread"}
-                    </Text>
+                      accessibilityRole="button"
+                      accessibilityLabel="Close message"
+                    >
+                      <Ionicons
+                        name="close"
+                        size={20}
+                        color={colors.navy}
+                      />
+                    </TouchableOpacity>
                   </View>
-                </ScrollView>
-              </>
-            )}
+
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={
+                      styles.modalScrollContent
+                    }
+                  >
+                    <View style={styles.modalDateRow}>
+                      <Ionicons
+                        name="time-outline"
+                        size={14}
+                        color={colors.textSub}
+                      />
+
+                      <Text style={styles.modalTimestamp}>
+                        {formatFullTimestamp(
+                          selectedMessage.timestamp
+                        )}
+                      </Text>
+                    </View>
+
+                    <View style={styles.modalDivider} />
+
+                    <Text style={styles.modalBody}>
+                      {selectedMessage.body}
+                    </Text>
+
+                    <View style={styles.modalDivider} />
+
+                    <TouchableOpacity
+                      style={styles.readToggle}
+                      onPress={handleToggleSelectedRead}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                    >
+                      <View style={styles.readToggleIcon}>
+                        <Ionicons
+                          name={
+                            selectedMessage.read
+                              ? "mail-unread-outline"
+                              : "checkmark-circle-outline"
+                          }
+                          size={19}
+                          color={PURPLE}
+                        />
+                      </View>
+
+                      <View style={styles.readToggleTextGroup}>
+                        <Text style={styles.readToggleTitle}>
+                          {selectedMessage.read
+                            ? "Mark as unread"
+                            : "Mark as read"}
+                        </Text>
+
+                        <Text style={styles.readToggleDescription}>
+                          {selectedMessage.read
+                            ? "Keep this message highlighted in your inbox."
+                            : "Remove the unread indicator from this message."}
+                        </Text>
+                      </View>
+
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={colors.textSub}
+                      />
+                    </TouchableOpacity>
+                  </ScrollView>
+                </>
+              );
+            })()}
           </View>
         </View>
       </Modal>
@@ -478,187 +615,280 @@ export default function Messages() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: WHITE,
   },
+
+  // HEADER
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 70,
-    paddingHorizontal: 20,
-    paddingBottom: 28,
+    backgroundColor: PURPLE,
   },
 
-  headerButton: {
-    width: 36,
-    height: 36,
+  appBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop:
+      Platform.OS === "android"
+        ? (StatusBar.currentHeight ?? 24) + 8
+        : 56,
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+  },
+
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: -8,
+  },
+
+  appBarTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "700",
+    color: WHITE,
+    textAlign: "center",
+  },
+
+  markAllButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor:
+      "rgba(255,255,255,0.10)",
+  },
+
+  markAllButtonDisabled: {
+    opacity: 0.45,
+  },
+
+  headerContent: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+
+  headerEyebrow: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#E4E1FF",
+    letterSpacing: 0.7,
+    marginBottom: 10,
+  },
+
+  headerHeading: {
+    fontSize: 29,
+    fontWeight: "800",
+    color: WHITE,
+    letterSpacing: -0.6,
+    lineHeight: 36,
+  },
+
+  headerDescription: {
+    fontSize: 13,
+    color: "#E4E1FF",
+    lineHeight: 19,
+    marginTop: 8,
+    maxWidth: 310,
+  },
+
+  headerDivider: {
+    height: 1,
+    backgroundColor:
+      "rgba(255,255,255,0.20)",
+    marginHorizontal: 24,
+  },
+
+  headerFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    gap: 8,
+  },
+
+  headerFooterIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor:
+      "rgba(255,255,255,0.10)",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  headerTextContainer: {
+  headerFooterText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#E4E1FF",
+  },
+
+  // CONTENT
+
+  content: {
     flex: 1,
+    backgroundColor: WHITE,
+  },
+
+  sectionHeader: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 12,
+    gap: 12,
   },
 
-  headerTitle: {
+  sectionTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: 0.3,
+    fontWeight: "800",
+    color: colors.navy,
+    letterSpacing: -0.3,
   },
 
-  headerSubtitle: {
-    marginTop: 2,
+  sectionDescription: {
+    fontSize: 12,
+    color: colors.textSub,
+    marginTop: 5,
+  },
+
+  countBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: colors.surfaceMuted,
+  },
+
+  countText: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.82)",
-  },
-
-  whiteCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -20,
-    overflow: "hidden",
+    fontWeight: "700",
+    color: colors.textSub,
   },
 
   listContent: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 30,
+    paddingBottom: 40,
   },
 
   emptyListContent: {
     flexGrow: 1,
+    justifyContent: "center",
   },
 
-  messageItem: {
+  // MESSAGE ROWS
+
+  messageRow: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 92,
     paddingVertical: 15,
-    paddingHorizontal: 6,
-    borderRadius: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: LINE,
+    gap: 12,
   },
 
-  unreadItem: {
-    backgroundColor: "#F5F8FF",
+  unreadRow: {
+    backgroundColor: "#FCFBFF",
   },
 
-  iconWrapper: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "#EEF3FF",
+  messageIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
 
   messageContent: {
     flex: 1,
+    minWidth: 0,
   },
 
   messageHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 3,
+    justifyContent: "space-between",
+    gap: 10,
   },
 
   messageTitle: {
     flex: 1,
-    marginRight: 8,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: colors.navy,
   },
 
-  unreadTitle: {
-    fontWeight: "700",
+  unreadMessageTitle: {
+    fontWeight: "800",
   },
 
   timestamp: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSub,
   },
 
   messagePreview: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
     color: colors.textSub,
+    lineHeight: 18,
+    marginTop: 5,
+  },
+
+  unreadMessagePreview: {
+    color: colors.navy,
+  },
+
+  messageRight: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 18,
+    gap: 9,
   },
 
   unreadDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: colors.primary,
-    marginLeft: 9,
   },
 
-  separator: {
-    height: 1,
-    backgroundColor: "#F0F2F5",
-    marginHorizontal: 6,
-  },
-
-  centerState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-  },
+  // EMPTY STATE
 
   emptyState: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
-    paddingBottom: 60,
+    paddingHorizontal: 30,
   },
 
-  stateIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: "#EEF3FF",
+  emptyIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: PALE_PURPLE,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 15,
   },
 
-  stateTitle: {
-    fontSize: 17,
+  emptyTitle: {
+    fontSize: 16,
     fontWeight: "700",
     color: colors.navy,
-    textAlign: "center",
-    marginBottom: 6,
   },
 
-  stateText: {
-    marginTop: 8,
+  emptyDescription: {
     fontSize: 13,
-    lineHeight: 19,
     color: colors.textSub,
     textAlign: "center",
+    lineHeight: 19,
+    marginTop: 6,
   },
 
-  retryButton: {
-    marginTop: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 22,
-  },
-
-  retryButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  // MESSAGE DETAIL SHEET
 
   modalOverlay: {
     flex: 1,
@@ -667,25 +897,23 @@ const styles = StyleSheet.create({
 
   modalBackdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(0,0,0,0.32)",
+    backgroundColor:
+      "rgba(15,23,42,0.52)",
   },
 
   modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
+    maxHeight: "78%",
+    backgroundColor: WHITE,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingTop: 12,
-    paddingBottom: 30,
-    minHeight: 330,
-    maxHeight: "80%",
   },
 
   modalHandle: {
-    width: 40,
+    width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#D8DDE6",
+    backgroundColor: LINE,
     alignSelf: "center",
     marginBottom: 18,
   },
@@ -693,87 +921,106 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    paddingHorizontal: 20,
+    gap: 12,
   },
 
-  modalIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#EEF3FF",
+  modalIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 13,
   },
 
-  modalTitleContainer: {
+  modalTitleGroup: {
     flex: 1,
+    minWidth: 0,
+  },
+
+  modalEyebrow: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.textSub,
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
 
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.navy,
+    lineHeight: 22,
+  },
+
+  modalClose: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceMuted,
+  },
+
+  modalScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 34,
+  },
+
+  modalDateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  modalTimestamp: {
+    fontSize: 11,
+    color: colors.textSub,
+  },
+
+  modalDivider: {
+    height: 1,
+    backgroundColor: LINE,
+    marginVertical: 18,
+  },
+
+  modalBody: {
+    fontSize: 14,
+    color: colors.navy,
+    lineHeight: 22,
+  },
+
+  readToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+  },
+
+  readToggleIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: PALE_PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  readToggleTextGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  readToggleTitle: {
+    fontSize: 13,
     fontWeight: "700",
     color: colors.navy,
   },
 
-  modalCategory: {
-    marginTop: 2,
-    fontSize: 12,
+  readToggleDescription: {
+    fontSize: 11,
     color: colors.textSub,
-  },
-
-  modalClose: {
-    padding: 5,
-  },
-
-  modalScrollContent: {
-    paddingBottom: 12,
-  },
-
-  modalTimestamp: {
-    fontSize: 12,
-    color: colors.textSub,
-    marginBottom: 14,
-  },
-
-  modalBody: {
-    fontSize: 15,
-    color: "#303744",
-    lineHeight: 23,
-    marginBottom: 20,
-  },
-
-  safetyNote: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 9,
-    backgroundColor: "#F4F7FD",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 18,
-  },
-
-  safetyNoteText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#4A5568",
-  },
-
-  readStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    gap: 7,
-    backgroundColor: "#F4F7FD",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 18,
-  },
-
-  readStatusText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.primary,
+    lineHeight: 16,
+    marginTop: 3,
   },
 });

@@ -1,37 +1,47 @@
-// app/secure-escape/emergency-budget.tsx
+// screens/secure-escape/EmergencyBudget.tsx
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
-  Animated,
-  Linking,
+  ActivityIndicator,
   Modal,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import Slider from "@react-native-community/slider";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ErrorBanner, ErrorModal } from "@/components/FormErrorMessage";
 import { upsertDecoyProfile } from "@/services/secureEscapeService";
 import { colors } from "@/utils/theme";
 
+const PURPLE = "#25145F";
+const WHITE = "#FFFFFF";
+const BACKGROUND = "#F7F6FB";
+const LINE = "#E8E6F0";
+const PALE_PURPLE = "#EFEBFC";
+const MUTED_PURPLE = "#DCD5F5";
+
 const DEFAULT_TIER_2_DELAY_HOURS = 24;
+
+const formatCurrency = (value: number) =>
+  `R ${value.toLocaleString("en-ZA")}`;
 
 export default function EmergencyBudgetScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const { profileType } = useLocalSearchParams<{
     profileType?: "LowProfile" | "Custom";
   }>();
 
-  const mode = profileType;
+  const isLowProfile = profileType === "LowProfile";
 
   const [lowAmount, setLowAmount] = useState(200);
   const [tier1, setTier1] = useState(2000);
@@ -45,67 +55,12 @@ export default function EmergencyBudgetScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
   // Protection Amount information modal
   const [protectionModalVisible, setProtectionModalVisible] = useState(false);
-  const protectionFadeAnim = useRef(new Animated.Value(0)).current;
-  const protectionScaleAnim = useRef(new Animated.Value(0.9)).current;
 
   // Terms & Conditions modal
   const [termsModalVisible, setTermsModalVisible] = useState(false);
-  const termsFadeAnim = useRef(new Animated.Value(0)).current;
-  const termsScaleAnim = useRef(new Animated.Value(0.9)).current;
   const [modalAgreed, setModalAgreed] = useState(false);
-
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    const rotateAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(rotateAnim, {
-          toValue: 0.05,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(rotateAnim, {
-          toValue: -0.05,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    pulseAnimation.start();
-    rotateAnimation.start();
-
-    return () => {
-      pulseAnimation.stop();
-      rotateAnimation.stop();
-    };
-  }, [fadeAnim, pulseAnim, rotateAnim]);
 
   const showError = (message: string) => {
     setError(message);
@@ -119,7 +74,7 @@ export default function EmergencyBudgetScreen() {
 
   const handleSliderChange = (
     value: number,
-    type: "low" | "tier1" | "tier2",
+    type: "low" | "tier1" | "tier2"
   ) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     clearError();
@@ -132,7 +87,7 @@ export default function EmergencyBudgetScreen() {
     if (type === "tier1") {
       setTier1(value);
 
-      if (mode === "Custom") {
+      if (profileType === "Custom") {
         setDisplayBalance(value);
       }
 
@@ -144,85 +99,22 @@ export default function EmergencyBudgetScreen() {
 
   const openProtectionModal = () => {
     setProtectionModalVisible(true);
-
-    protectionFadeAnim.setValue(0);
-    protectionScaleAnim.setValue(0.9);
-
-    Animated.parallel([
-      Animated.timing(protectionFadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(protectionScaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 80,
-        useNativeDriver: true,
-      }),
-    ]).start();
   };
 
   const closeProtectionModal = () => {
-    Animated.parallel([
-      Animated.timing(protectionFadeAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(protectionScaleAnim, {
-        toValue: 0.9,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setProtectionModalVisible(false);
-    });
+    setProtectionModalVisible(false);
   };
 
   const openTermsModal = () => {
     clearError();
     setModalAgreed(false);
     setTermsModalVisible(true);
-
-    termsFadeAnim.setValue(0);
-    termsScaleAnim.setValue(0.9);
-
-    Animated.parallel([
-      Animated.timing(termsFadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(termsScaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 80,
-        useNativeDriver: true,
-      }),
-    ]).start();
   };
 
   const closeTermsModal = () => {
-    if (isSaving) {
-      return;
-    }
-
-    Animated.parallel([
-      Animated.timing(termsFadeAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(termsScaleAnim, {
-        toValue: 0.9,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setTermsModalVisible(false);
-      setModalAgreed(false);
-    });
+    if (isSaving) return;
+    setTermsModalVisible(false);
+    setModalAgreed(false);
   };
 
   const getValidationMessage = () => {
@@ -257,9 +149,7 @@ export default function EmergencyBudgetScreen() {
     const validationMessage = getValidationMessage();
 
     if (validationMessage) {
-      void Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      );
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showError(validationMessage);
       return;
     }
@@ -268,24 +158,18 @@ export default function EmergencyBudgetScreen() {
   };
 
   const handleConfirm = async () => {
-    if (!modalAgreed || isSaving) {
-      return;
-    }
+    if (!modalAgreed || isSaving) return;
 
     const validationMessage = getValidationMessage();
 
     if (validationMessage) {
-      void Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      );
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showError(validationMessage);
       return;
     }
 
     if (profileType !== "LowProfile" && profileType !== "Custom") {
-      showError(
-        "Please choose a Secure Escape mode before saving your setup.",
-      );
+      showError("Please choose a Secure Escape mode before saving your setup.");
       return;
     }
 
@@ -313,201 +197,241 @@ export default function EmergencyBudgetScreen() {
         });
       }
 
-      void Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success,
-      );
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       setTermsModalVisible(false);
       setModalAgreed(false);
 
       router.push({
         pathname: "/secure-escape/duress-pin",
-        params: { profileType },
+        params: { profileType, from: "onboarding" },
       });
     } catch (err) {
-      void Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      );
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
       showError(
         err instanceof Error
           ? err.message
-          : "Failed to save your Secure Escape setup.",
+          : "Failed to save your Secure Escape setup."
       );
     } finally {
       setIsSaving(false);
     }
   };
 
-  const formatCurrency = (value: number) =>
-    `R ${value.toLocaleString("en-ZA")}`;
-
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [-0.05, 0.05],
-    outputRange: ["-5deg", "5deg"],
-  });
-
-  let content: React.ReactNode;
-
-  if (profileType === "LowProfile") {
-    content = (
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <Text style={styles.label}>
-          Protection Amount{" "}
-          <Text style={styles.range}>(R200 – R1,000)</Text>
-        </Text>
-
-        <Slider
-          style={styles.slider}
-          minimumValue={200}
-          maximumValue={1000}
-          step={10}
-          value={lowAmount}
-          onValueChange={(value: number) =>
-            handleSliderChange(value, "low")
-          }
-          minimumTrackTintColor={colors.primary}
-          maximumTrackTintColor={colors.greyLine}
-          thumbTintColor={colors.primary}
-        />
-
-        <View style={styles.valueContainer}>
-          <Text style={styles.valueLabel}>Suggested: R200</Text>
-          <Text style={styles.value}>{formatCurrency(lowAmount)}</Text>
-        </View>
-      </Animated.View>
-    );
-  } else {
-    content = (
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <Text style={styles.label}>
-          Protection Amount – Tier 1{" "}
-          <Text style={styles.range}>(R500 – R5,000)</Text>
-        </Text>
-
-        <Slider
-          style={styles.slider}
-          minimumValue={500}
-          maximumValue={5000}
-          step={50}
-          value={tier1}
-          onValueChange={(value: number) =>
-            handleSliderChange(value, "tier1")
-          }
-          minimumTrackTintColor={colors.primary}
-          maximumTrackTintColor={colors.greyLine}
-          thumbTintColor={colors.primary}
-        />
-
-        <View style={styles.valueContainer}>
-          <Text style={styles.valueLabel}>Instant transfer amount</Text>
-          <Text style={styles.value}>{formatCurrency(tier1)}</Text>
-        </View>
-
-        <Text style={[styles.label, styles.tierTwoLabel]}>
-          Protection Amount – Tier 2{" "}
-          <Text style={styles.range}>(up to R50,000)</Text>
-        </Text>
-
-        <Slider
-          style={styles.slider}
-          minimumValue={0}
-          maximumValue={50000}
-          step={500}
-          value={tier2}
-          onValueChange={(value: number) =>
-            handleSliderChange(value, "tier2")
-          }
-          minimumTrackTintColor={colors.primary}
-          maximumTrackTintColor={colors.greyLine}
-          thumbTintColor={colors.primary}
-        />
-
-        <View style={styles.valueContainer}>
-          <Text style={styles.valueLabel}>Delayed transfer amount</Text>
-          <Text style={styles.value}>{formatCurrency(tier2)}</Text>
-        </View>
-      </Animated.View>
-    );
-  }
-
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <LinearGradient
-        colors={["#25145F", "#25145F"]}
-        style={styles.gradientHeader}
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" backgroundColor={PURPLE} />
+
+      {/* ONBOARDING HEADER */}
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 4,
+          },
+        ]}
       >
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={21} color={WHITE} />
+          </TouchableOpacity>
+
+          <Text style={styles.topBarTitle}>Secure Escape</Text>
+
+          <View style={styles.topBarSpacer} />
+        </View>
+
+        <View style={styles.headerContent}>
+          <View style={styles.stepRow}>
+            <View style={styles.stepPill}>
+              <Text style={styles.stepPillText}>STEP 02</Text>
+            </View>
+
+            <Text style={styles.stepCaption}>PROTECTION SETUP</Text>
+          </View>
+
+          <Text style={styles.headerTitle}>Set your protection amount</Text>
+
+          <Text style={styles.headerDescription}>
+            Choose the amount available if you&apos;re forced to transact under
+            duress.
+          </Text>
+        </View>
+      </View>
+
+      {/* CONTENT SCROLL */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* CENTERED HELP LINK */}
         <TouchableOpacity
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Set Protection Amount</Text>
-      </LinearGradient>
-
-      <View style={styles.whiteCard}>
-        <Text style={styles.mainTitle}>Secure Escape,</Text>
-        <Text style={styles.sub}>Set your protection amount</Text>
-
-        <Text style={styles.subDescription}>
-          Choose the amount available during a Secure Escape event.
-          Your settings determine the limits used by your protection
-          profile.
-        </Text>
-
-        <TouchableOpacity
+          style={styles.howItWorks}
           onPress={openProtectionModal}
+          activeOpacity={0.7}
           accessibilityRole="button"
+          accessibilityLabel="What is the protection amount?"
         >
-          <Text style={styles.link}>
+          <Ionicons
+            name="information-circle-outline"
+            size={18}
+            color={PURPLE}
+          />
+
+          <Text style={styles.howItWorksText}>
             What is the protection amount?
           </Text>
+
+          <Ionicons name="chevron-forward" size={16} color={PURPLE} />
         </TouchableOpacity>
 
-        <Animated.View
-          style={[
-            styles.iconContainer,
-            {
-              transform: [
-                { scale: pulseAnim },
-                { rotate: rotateInterpolate },
-              ],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={["#EDE9FE", "#DBEAFE"]}
-            style={styles.iconCircle}
-          >
+        {/* MODE BANNER */}
+        <View style={styles.modeBadgeCard}>
+          <View style={styles.modeBadgeIcon}>
             <Ionicons
-              name="cash-outline"
-              size={60}
-              color={colors.primary}
+              name={isLowProfile ? "shield-outline" : "layers-outline"}
+              size={20}
+              color={PURPLE}
             />
-          </LinearGradient>
-        </Animated.View>
+          </View>
 
-        {content}
+          <View style={styles.modeBadgeCopy}>
+            <Text style={styles.modeBadgeEyebrow}>SELECTED MODE</Text>
+            <Text style={styles.modeBadgeTitle}>
+              {isLowProfile ? "Low Profile Mode" : "Realistic Decoy Mode"}
+            </Text>
+            <Text style={styles.modeBadgeSubtitle}>
+              {isLowProfile
+                ? "Configures a single small protection balance."
+                : "Configures instant and delayed transaction limits."}
+            </Text>
+          </View>
+        </View>
 
-        <View style={styles.noteBox}>
+        {/* SLIDERS SECTION */}
+        {isLowProfile ? (
+          /* LOW PROFILE SLIDER */
+          <View style={styles.sliderCard}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Protection Amount</Text>
+              <View style={styles.rangeBadge}>
+                <Text style={styles.rangeBadgeText}>R200 – R1,000</Text>
+              </View>
+            </View>
+
+            <Text style={styles.cardSubtitle}>
+              Available balance shown in Low Profile decoy mode.
+            </Text>
+
+            <Slider
+              style={styles.slider}
+              minimumValue={200}
+              maximumValue={1000}
+              step={10}
+              value={lowAmount}
+              onValueChange={(val: number) => handleSliderChange(val, "low")}
+              minimumTrackTintColor={PURPLE}
+              maximumTrackTintColor={LINE}
+              thumbTintColor={PURPLE}
+            />
+
+            <View style={styles.valueRow}>
+              <Text style={styles.suggestedLabel}>Suggested: R200</Text>
+              <Text style={styles.valueAmount}>{formatCurrency(lowAmount)}</Text>
+            </View>
+          </View>
+        ) : (
+          /* REALISTIC DECOY SLIDERS (TIER 1 & TIER 2) */
+          <>
+            {/* TIER 1 */}
+            <View style={styles.sliderCard}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>Tier 1 — Instant Limit</Text>
+                <View style={styles.rangeBadge}>
+                  <Text style={styles.rangeBadgeText}>R500 – R5,000</Text>
+                </View>
+              </View>
+
+              <Text style={styles.cardSubtitle}>
+                Available immediately during a duress session.
+              </Text>
+
+              <Slider
+                style={styles.slider}
+                minimumValue={500}
+                maximumValue={5000}
+                step={50}
+                value={tier1}
+                onValueChange={(val: number) =>
+                  handleSliderChange(val, "tier1")
+                }
+                minimumTrackTintColor={PURPLE}
+                maximumTrackTintColor={LINE}
+                thumbTintColor={PURPLE}
+              />
+
+              <View style={styles.valueRow}>
+                <Text style={styles.suggestedLabel}>Instant transfer limit</Text>
+                <Text style={styles.valueAmount}>{formatCurrency(tier1)}</Text>
+              </View>
+            </View>
+
+            {/* TIER 2 */}
+            <View style={styles.sliderCard}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>Tier 2 — Delayed Limit</Text>
+                <View style={styles.rangeBadge}>
+                  <Text style={styles.rangeBadgeText}>Up to R50,000</Text>
+                </View>
+              </View>
+
+              <Text style={styles.cardSubtitle}>
+                Delayed by 24 hours to give you time to reach safety.
+              </Text>
+
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={50000}
+                step={500}
+                value={tier2}
+                onValueChange={(val: number) =>
+                  handleSliderChange(val, "tier2")
+                }
+                minimumTrackTintColor={PURPLE}
+                maximumTrackTintColor={LINE}
+                thumbTintColor={PURPLE}
+              />
+
+              <View style={styles.valueRow}>
+                <Text style={styles.suggestedLabel}>Delayed transfer limit</Text>
+                <Text style={styles.valueAmount}>{formatCurrency(tier2)}</Text>
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* NOTICE CARD */}
+        <View style={styles.noteCard}>
           <Ionicons
-            name="information-circle"
-            size={20}
-            color={colors.primary}
-            style={styles.noteIcon}
+            name="information-circle-outline"
+            size={19}
+            color={PURPLE}
           />
 
           <Text style={styles.noteText}>
-            <Text style={styles.boldText}>Note: </Text>
-            These limits form part of your Secure Escape protection
-            profile and are used when the duress feature is activated.
+            <Text style={styles.noteBold}>Note: </Text>
+            These limits form part of your Secure Escape protection profile and
+            are used when the duress feature is activated.
           </Text>
         </View>
 
@@ -515,21 +439,31 @@ export default function EmergencyBudgetScreen() {
           message={error}
           onPress={() => setShowErrorModal(true)}
         />
+      </ScrollView>
 
+      {/* FIXED BOTTOM ACTION */}
+      <View
+        style={[
+          styles.bottomArea,
+          {
+            paddingBottom: Math.max(insets.bottom, 14),
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.continueButton}
           onPress={handleContinue}
           activeOpacity={0.8}
+          accessibilityRole="button"
         >
-          <LinearGradient
-            colors={["#25145F", "#25145F"]}
-            style={styles.gradientButton}
-          >
-            <Text style={styles.buttonText}>Continue</Text>
-          </LinearGradient>
+          <Text style={styles.continueText}>Continue</Text>
+          <Ionicons name="arrow-forward" size={18} color={WHITE} />
         </TouchableOpacity>
+
+        <Text style={styles.bottomNote}>Next: Set up your duress PIN</Text>
       </View>
 
+      {/* ERROR MODAL */}
       <ErrorModal
         title="Secure Escape setup"
         message={error}
@@ -537,513 +471,738 @@ export default function EmergencyBudgetScreen() {
         onClose={() => setShowErrorModal(false)}
       />
 
+      {/* PROTECTION INFO MODAL (BOTTOM SHEET) */}
       <Modal
         transparent
         visible={protectionModalVisible}
-        animationType="none"
+        animationType="slide"
+        statusBarTranslucent
         onRequestClose={closeProtectionModal}
       >
-        <TouchableWithoutFeedback onPress={closeProtectionModal}>
-          <Animated.View
+        <View style={styles.modalRoot}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={closeProtectionModal}
+            accessibilityRole="button"
+            accessibilityLabel="Close protection amount information"
+          />
+
+          <View
             style={[
-              styles.modalOverlay,
-              { opacity: protectionFadeAnim },
+              styles.modalSheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 20),
+              },
             ]}
           >
-            <TouchableWithoutFeedback
-              onPress={(event) => event.stopPropagation()}
-            >
-              <Animated.View
-                style={[
-                  styles.modalCard,
-                  {
-                    transform: [
-                      { scale: protectionScaleAnim },
-                    ],
-                  },
-                ]}
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderIcon}>
+                <Ionicons name="shield-outline" size={21} color={PURPLE} />
+              </View>
+
+              <View style={styles.modalHeaderCopy}>
+                <Text style={styles.modalEyebrow}>SECURE ESCAPE</Text>
+                <Text style={styles.modalTitle}>Protection Amount</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={closeProtectionModal}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
               >
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={closeProtectionModal}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close protection amount information"
-                >
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={colors.navy}
-                  />
-                </TouchableOpacity>
+                <Ionicons name="close" size={20} color={colors.navy} />
+              </TouchableOpacity>
+            </View>
 
-                <Text style={styles.modalTitle}>
-                  Protection Amount
-                </Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalContent}
+            >
+              <Text style={styles.modalIntro}>
+                This setting controls what amount is visible and accessible
+                through your Secure Escape protection profile during a duress
+                event.
+              </Text>
 
-                <Text style={styles.modalSubtitle}>
-                  This setting controls how much money is available
-                  through your Secure Escape protection profile during a
-                  duress event.
-                </Text>
+              <InfoPoint>
+                <Text style={styles.bold}>Low Profile Mode:</Text> Uses a single
+                smaller protection amount (R200 – R1,000) for minimal exposure.
+              </InfoPoint>
 
-                <View style={styles.bulletList}>
-                  <View style={styles.bulletItem}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.bulletText}>
-                      <Text style={styles.boldText}>
-                        Low Profile
-                      </Text>{" "}
-                      uses one smaller protection amount.
-                    </Text>
-                  </View>
+              <InfoPoint>
+                <Text style={styles.bold}>Realistic Decoy Mode:</Text> Sets up a
+                two-tier system with an immediate transfer limit and a delayed
+                transfer limit.
+              </InfoPoint>
 
-                  <View style={styles.bulletItem}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.bulletText}>
-                      <Text style={styles.boldText}>Custom</Text>{" "}
-                      allows separate Tier 1 and Tier 2 limits.
-                    </Text>
-                  </View>
+              <InfoPoint>
+                <Text style={styles.bold}>Tier 1 (Instant):</Text> Leaves your
+                account immediately so the attacker believes the transfer has
+                succeeded.
+              </InfoPoint>
 
-                  <View style={styles.bulletItem}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.bulletText}>
-                      Tier 1 represents the immediate amount available
-                      under the Custom profile.
-                    </Text>
-                  </View>
+              <InfoPoint>
+                <Text style={styles.bold}>Tier 2 (Delayed):</Text> Holds larger
+                transfers for 24 hours, giving you time to reach safety and
+                cancel the transfer.
+              </InfoPoint>
 
-                  <View style={styles.bulletItem}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.bulletText}>
-                      Tier 2 represents the additional delayed limit
-                      configured for the profile.
-                    </Text>
-                  </View>
-                </View>
-              </Animated.View>
-            </TouchableWithoutFeedback>
-          </Animated.View>
-        </TouchableWithoutFeedback>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={closeProtectionModal}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalButtonText}>Got it</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
 
+      {/* TERMS & CONDITIONS MODAL (BOTTOM SHEET) */}
       <Modal
-        transparent
         visible={termsModalVisible}
-        animationType="none"
+        transparent
+        animationType="slide"
+        statusBarTranslucent
         onRequestClose={closeTermsModal}
       >
-        <TouchableWithoutFeedback onPress={closeTermsModal}>
-          <Animated.View
+        <View style={styles.modalRoot}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={closeTermsModal}
+            accessibilityRole="button"
+            accessibilityLabel="Close terms and conditions"
+          />
+
+          <View
             style={[
-              styles.modalOverlay,
-              { opacity: termsFadeAnim },
+              styles.modalSheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 20),
+              },
             ]}
           >
-            <TouchableWithoutFeedback
-              onPress={(event) => event.stopPropagation()}
-            >
-              <Animated.View
-                style={[
-                  styles.modalCard,
-                  {
-                    transform: [{ scale: termsScaleAnim }],
-                  },
-                ]}
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderIcon}>
+                <Ionicons
+                  name="document-text-outline"
+                  size={21}
+                  color={PURPLE}
+                />
+              </View>
+
+              <View style={styles.modalHeaderCopy}>
+                <Text style={styles.modalEyebrow}>BEFORE YOU CONTINUE</Text>
+                <Text style={styles.modalTitle}>Terms & Conditions</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={closeTermsModal}
+                disabled={isSaving}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
               >
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={closeTermsModal}
-                  disabled={isSaving}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close terms and conditions"
+                <Ionicons name="close" size={20} color={colors.navy} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalContent}
+            >
+              <View style={styles.termsAmountCard}>
+                <Text style={styles.termsAmountLabel}>
+                  {isLowProfile
+                    ? "SELECTED PROTECTION AMOUNT"
+                    : "SELECTED TIER LIMITS"}
+                </Text>
+
+                <Text style={styles.termsAmountValue}>
+                  {isLowProfile
+                    ? formatCurrency(lowAmount)
+                    : `Tier 1: ${formatCurrency(tier1)} | Tier 2: ${formatCurrency(tier2)}`}
+                </Text>
+              </View>
+
+              <Text style={styles.termsSubtitle}>Key Points</Text>
+
+              <InfoPoint>
+                <Text style={styles.bold}>Protection profile:</Text> Your
+                selected amounts will be saved as part of your Secure Escape
+                protection profile.
+              </InfoPoint>
+
+              <InfoPoint>
+                <Text style={styles.bold}>Genuinely under duress:</Text> Secure
+                Escape should only be activated when you are genuinely under
+                duress.
+              </InfoPoint>
+
+              <InfoPoint>
+                <Text style={styles.bold}>Fraud response review:</Text> Activity
+                associated with a duress event may be reviewed by the
+                bank&apos;s authorised fraud response team.
+              </InfoPoint>
+
+              <Text style={styles.termsNoticeText}>
+                Review your bank&apos;s applicable Secure Escape terms and
+                privacy information before activating the feature.
+              </Text>
+
+              <TouchableOpacity
+                style={styles.agreementRow}
+                onPress={() => setModalAgreed((current) => !current)}
+                disabled={isSaving}
+                activeOpacity={0.8}
+                accessibilityRole="checkbox"
+                accessibilityState={{
+                  checked: modalAgreed,
+                }}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    modalAgreed && styles.checkboxChecked,
+                  ]}
                 >
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={colors.navy}
-                  />
-                </TouchableOpacity>
-
-                <Text style={styles.modalTitle}>
-                  Terms & Conditions
-                </Text>
-
-                <Text style={styles.modalSubtitle}>
-                  Key points
-                </Text>
-
-                <View style={styles.bulletList}>
-                  <View style={styles.bulletItem}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.bulletText}>
-                      Your selected amounts will be saved as part of
-                      your Secure Escape protection profile.
-                    </Text>
-                  </View>
-
-                  <View style={styles.bulletItem}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.bulletText}>
-                      Secure Escape should only be activated when you
-                      are genuinely under duress.
-                    </Text>
-                  </View>
-
-                  <View style={styles.bulletItem}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.bulletText}>
-                      Activity associated with a duress event may be
-                      reviewed by the bank&apos;s authorised fraud
-                      response team.
-                    </Text>
-                  </View>
+                  {modalAgreed && (
+                    <Ionicons name="checkmark" size={16} color={WHITE} />
+                  )}
                 </View>
 
-                <Text style={styles.modalFooter}>
-                  Review your bank&apos;s applicable Secure Escape
-                  terms and privacy information before activating the
-                  feature.
+                <Text style={styles.agreementText}>
+                  I have read and agree to the Terms & Conditions
                 </Text>
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.modalCheckRow}
-                  onPress={() => setModalAgreed((current) => !current)}
-                  activeOpacity={0.7}
-                  disabled={isSaving}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: modalAgreed }}
-                >
-                  <View
-                    style={[
-                      styles.modalCheckbox,
-                      modalAgreed &&
-                        styles.modalCheckboxChecked,
-                    ]}
-                  >
-                    {modalAgreed && (
-                      <Ionicons
-                        name="checkmark"
-                        size={18}
-                        color="#fff"
-                      />
-                    )}
-                  </View>
-
-                  <Text style={styles.modalCheckText}>
-                    I have read and agree to the Terms & Conditions
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  (!modalAgreed || isSaving) && styles.modalButtonDisabled,
+                ]}
+                onPress={handleConfirm}
+                disabled={!modalAgreed || isSaving}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+              >
+                {isSaving ? (
+                  <ActivityIndicator color={WHITE} />
+                ) : (
+                  <Text style={styles.modalButtonText}>
+                    Confirm & continue
                   </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.modalConfirmButton,
-                    (!modalAgreed || isSaving) &&
-                      styles.modalConfirmDisabled,
-                  ]}
-                  onPress={handleConfirm}
-                  disabled={!modalAgreed || isSaving}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={
-                      modalAgreed && !isSaving
-                        ? ["#25145F", "#25145F"]
-                        : ["#ccc", "#ccc"]
-                    }
-                    style={styles.modalGradientButton}
-                  >
-                    <Text style={styles.buttonText}>
-                      {isSaving
-                        ? "Saving..."
-                        : "Confirm & Agree"}
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            </TouchableWithoutFeedback>
-          </Animated.View>
-        </TouchableWithoutFeedback>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
-    </ScrollView>
+    </View>
+  );
+}
+
+function InfoPoint({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={styles.infoPoint}>
+      <Ionicons
+        name="checkmark-circle-outline"
+        size={19}
+        color={PURPLE}
+        style={styles.infoPointIcon}
+      />
+      <Text style={styles.infoPointText}>{children}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: BACKGROUND,
   },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  gradientHeader: {
-    paddingTop: 65,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#fff",
-  },
-  whiteCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    marginTop: -20,
-  },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: colors.primary,
-    marginBottom: 6,
-  },
-  sub: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.navy,
-    marginBottom: 4,
-    lineHeight: 22,
-  },
-  subDescription: {
-    fontSize: 14,
-    color: colors.textSub,
-    lineHeight: 20,
-    marginBottom: 6,
-  },
-  link: {
-    fontSize: 13,
-    color: colors.primary,
-    textDecorationLine: "underline",
-    marginBottom: 20,
-  },
-  iconContainer: {
-    alignItems: "center",
-    marginVertical: 24,
-  },
-  iconCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.navy,
-    marginBottom: 8,
-  },
-  tierTwoLabel: {
-    marginTop: 20,
-  },
-  range: {
-    fontWeight: "400",
-    color: colors.textSub,
-    fontSize: 12,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-    marginBottom: 8,
-  },
-  valueContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    marginBottom: 16,
-  },
-  valueLabel: {
-    fontSize: 13,
-    color: colors.textSub,
-  },
-  value: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: colors.primary,
-  },
-  noteBox: {
-    flexDirection: "row",
-    backgroundColor: "#F5F3FF",
-    padding: 14,
-    borderRadius: 12,
-    marginTop: 8,
-    marginBottom: 20,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-  },
-  noteIcon: {
-    marginRight: 10,
-    marginTop: 1,
-  },
-  noteText: {
-    fontSize: 13,
-    color: "#444",
-    lineHeight: 20,
-    flex: 1,
-  },
-  linkText: {
-    color: colors.primary,
-    textDecorationLine: "underline",
-  },
-  continueButton: {
-    marginTop: 12,
-    borderRadius: 12,
+
+  // HEADER
+  header: {
+    backgroundColor: PURPLE,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
     overflow: "hidden",
-    marginBottom: 20,
   },
-  gradientButton: {
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  boldText: {
-    fontWeight: "700",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
+
+  topBar: {
+    height: 42,
+    flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
   },
-  modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 24,
-    width: "100%",
-    maxWidth: 360,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
+
+  backButton: {
+    width: 44,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: -8,
   },
-  closeButton: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    padding: 4,
-    zIndex: 1,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.navy,
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  modalSubtitle: {
+
+  topBarTitle: {
+    flex: 1,
+    textAlign: "center",
     fontSize: 15,
-    color: "#333",
-    lineHeight: 22,
-    marginBottom: 18,
+    fontWeight: "700",
+    color: WHITE,
   },
-  bulletList: {
+
+  topBarSpacer: {
+    width: 44,
+  },
+
+  headerContent: {
+    paddingHorizontal: 22,
+    paddingTop: 9,
+    paddingBottom: 16,
+  },
+
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
     marginBottom: 8,
   },
-  bulletItem: {
+
+  stepPill: {
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderRadius: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+
+  stepPillText: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    color: WHITE,
+  },
+
+  stepCaption: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    color: MUTED_PURPLE,
+  },
+
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    lineHeight: 30,
+    color: WHITE,
+  },
+
+  headerDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#E4E1FF",
+    marginTop: 5,
+  },
+
+  // SCROLL CONTENT
+  scrollView: {
+    flex: 1,
+  },
+
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 18,
+  },
+
+  howItWorks: {
+    minHeight: 37,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    marginBottom: 10,
+  },
+
+  howItWorksText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: PURPLE,
+  },
+
+  // MODE BANNER
+  modeBadgeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: 14,
+    padding: 13,
+    gap: 12,
     marginBottom: 14,
   },
-  bulletText: {
-    fontSize: 14,
-    color: "#444",
-    lineHeight: 20,
-    marginLeft: 10,
-    flex: 1,
-  },
-  modalFooter: {
-    fontSize: 14,
-    color: "#555",
-    lineHeight: 20,
-    fontStyle: "italic",
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    paddingTop: 14,
-    marginTop: 4,
-  },
-  modalCheckRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 16,
-    gap: 12,
-  },
-  modalCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.greyLine,
-    backgroundColor: "#fff",
+
+  modeBadgeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 11,
+    backgroundColor: PALE_PURPLE,
     alignItems: "center",
     justifyContent: "center",
   },
-  modalCheckboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  modalCheckText: {
-    fontSize: 13,
-    color: colors.textSub,
+
+  modeBadgeCopy: {
     flex: 1,
-    lineHeight: 18,
   },
-  modalConfirmButton: {
+
+  modeBadgeEyebrow: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: colors.textSub,
+    letterSpacing: 0.7,
+    marginBottom: 2,
+  },
+
+  modeBadgeTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.navy,
+  },
+
+  modeBadgeSubtitle: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.textSub,
+    marginTop: 2,
+  },
+
+  // SLIDER CARDS
+  sliderCard: {
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: 15,
+    padding: 16,
+    marginBottom: 13,
+  },
+
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.navy,
+  },
+
+  rangeBadge: {
+    backgroundColor: PALE_PURPLE,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+
+  rangeBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: PURPLE,
+  },
+
+  cardSubtitle: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.textSub,
+    marginBottom: 12,
+  },
+
+  slider: {
+    width: "100%",
+    height: 38,
+  },
+
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+    paddingTop: 11,
+    marginTop: 8,
+  },
+
+  suggestedLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.textSub,
+  },
+
+  valueAmount: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: PURPLE,
+  },
+
+  // NOTE
+  noteCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: PALE_PURPLE,
     borderRadius: 12,
-    overflow: "hidden",
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    gap: 9,
+    marginBottom: 14,
+  },
+
+  noteText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 17,
+    color: colors.textSub,
+  },
+
+  noteBold: {
+    fontWeight: "800",
+    color: colors.navy,
+  },
+
+  // BOTTOM ACTION
+  bottomArea: {
+    backgroundColor: BACKGROUND,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+  },
+
+  continueButton: {
+    minHeight: 50,
+    borderRadius: 13,
+    backgroundColor: PURPLE,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+
+  continueText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: WHITE,
+  },
+
+  bottomNote: {
+    fontSize: 11,
+    color: colors.textSub,
+    textAlign: "center",
+    marginTop: 6,
+  },
+
+  // MODAL ROOT & BOTTOM SHEET
+  modalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+
+  modalBackdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(15,23,42,0.52)",
+  },
+
+  modalSheet: {
+    maxHeight: "86%",
+    backgroundColor: WHITE,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+  },
+
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: LINE,
+    alignSelf: "center",
+    marginBottom: 17,
+  },
+
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    gap: 11,
+  },
+
+  modalHeaderIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: PALE_PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  modalHeaderCopy: {
+    flex: 1,
+  },
+
+  modalEyebrow: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: colors.textSub,
+    letterSpacing: 0.7,
+    marginBottom: 4,
+  },
+
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.navy,
+  },
+
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: BACKGROUND,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  modalContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+
+  modalIntro: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSub,
+    marginBottom: 16,
+  },
+
+  infoPoint: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 14,
+  },
+
+  infoPointIcon: {
+    marginTop: 1,
+  },
+
+  infoPointText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSub,
+  },
+
+  bold: {
+    fontWeight: "700",
+    color: colors.navy,
+  },
+
+  modalButton: {
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+  },
+
+  modalButtonDisabled: {
+    opacity: 0.5,
+  },
+
+  modalButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: WHITE,
+  },
+
+  // TERMS MODAL SPECIFICS
+  termsAmountCard: {
+    backgroundColor: PALE_PURPLE,
+    borderRadius: 12,
+    padding: 13,
+    marginBottom: 16,
+  },
+
+  termsAmountLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: PURPLE,
+    letterSpacing: 0.6,
+  },
+
+  termsAmountValue: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: colors.navy,
     marginTop: 4,
   },
-  modalConfirmDisabled: {
-    opacity: 0.6,
+
+  termsSubtitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.navy,
+    marginBottom: 12,
   },
-  modalGradientButton: {
-    paddingVertical: 14,
+
+  termsNoticeText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.textSub,
+    marginTop: 6,
+    marginBottom: 14,
+  },
+
+  agreementRow: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    marginTop: 4,
+  },
+
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: LINE,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: WHITE,
+  },
+
+  checkboxChecked: {
+    backgroundColor: PURPLE,
+    borderColor: PURPLE,
+  },
+
+  agreementText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.navy,
+    fontWeight: "600",
   },
 });

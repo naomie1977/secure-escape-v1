@@ -1,3 +1,3 @@
-import TransactionChoice from "@/screens/transaction/TransactionChoice";
+import BeneficiaryTransactionChoice from "@/screens/transaction/BeneficiaryTransactionChoice";
 
-export default TransactionChoice;
+export default BeneficiaryTransactionChoice;
