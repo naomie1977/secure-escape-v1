@@ -413,7 +413,7 @@ export default function EmergencyContact() {
       keyboardShouldPersistTaps="handled"
     >
       <LinearGradient
-        colors={["#5B8DEF", "#6C63FF"]}
+        colors={["#25145F", "#25145F"]}
         style={styles.gradientHeader}
       >
         <TouchableOpacity
@@ -964,10 +964,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 14,
     marginBottom: 12,
     backgroundColor: "#F0EFFF",
-    borderRadius: 40,
+    borderRadius: 12,
   },
 
   importButtonText: {
@@ -981,11 +981,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 14,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.primary,
-    borderRadius: 40,
+    borderRadius: 12,
     borderStyle: "dashed",
   },
 
@@ -1004,7 +1004,7 @@ const styles = StyleSheet.create({
   skipButton: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 50,
+    borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
@@ -1029,7 +1029,7 @@ const styles = StyleSheet.create({
 
   actionButtonWrapper: {
     flex: 2,
-    borderRadius: 50,
+    borderRadius: 12,
     overflow: "hidden",
   },
 

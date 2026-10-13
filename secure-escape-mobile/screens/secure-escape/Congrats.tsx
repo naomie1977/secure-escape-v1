@@ -157,7 +157,7 @@ export default function Congrats() {
       showsVerticalScrollIndicator={false}
     >
       <LinearGradient
-        colors={["#5B8DEF", "#6C63FF"]}
+        colors={["#25145F", "#25145F"]}
         style={styles.gradientHeader}
       >
         <Text style={styles.backArrow} onPress={() => router.back()}>
@@ -321,9 +321,9 @@ const styles = StyleSheet.create({
   },
   okButton: {
     marginTop: 8,
-    borderRadius: 50,
+    borderRadius: 12,
     overflow: "hidden",
-    width: "80%",
+    width: "100%",
     marginBottom: 20,
   },
   gradientButton: {

@@ -141,7 +141,7 @@ export default function ManageSecureEscape() {
       showsVerticalScrollIndicator={false}
     >
       <LinearGradient
-        colors={["#5B8DEF", "#6C63FF"]}
+        colors={["#25145F", "#25145F"]}
         style={styles.gradientHeader}
       >
         <TouchableOpacity

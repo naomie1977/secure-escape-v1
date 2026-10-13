@@ -13,8 +13,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/utils/theme";
 import { useRouter } from "expo-router";
@@ -223,26 +223,42 @@ export default function AddBankAccount() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={["#5B8DEF", "#6C63FF"]} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Beneficiary</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
+      <StatusBar barStyle="light-content" backgroundColor="#25145F" />
+
+      {/* Deep-purple app bar */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerTitles}>
+            <Text style={styles.headerCategory}>BANK ACCOUNT</Text>
+            <Text style={styles.headerTitle}>Add Beneficiary</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+      </View>
 
       <KeyboardAvoidingView
-        style={styles.whiteCard}
+        style={styles.body}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <Text style={styles.infoText}>
-            Ensure you enter the correct details. Only Capitec account numbers
-            are verified against the actual account holder.
-          </Text>
+          <View style={styles.infoBanner}>
+            <Ionicons name="information-circle-outline" size={20} color="#25145F" />
+            <Text style={styles.infoText}>
+              Ensure you enter the correct details. Only Capitec account numbers
+              are verified against the actual account holder.
+            </Text>
+          </View>
 
           {/* Beneficiary name */}
           <View style={styles.field}>
@@ -254,7 +270,7 @@ export default function AddBankAccount() {
               value={beneficiaryName}
               onChangeText={handleNameChange}
               placeholder="e.g., John Doe"
-              placeholderTextColor="#A0A4B8"
+              placeholderTextColor="#94A3B8"
               maxLength={25}
             />
             {!!nameError && <Text style={styles.errorText}>{nameError}</Text>}
@@ -271,7 +287,7 @@ export default function AddBankAccount() {
               onChangeText={handleAccountChange}
               keyboardType="number-pad"
               placeholder="1234567890123456"
-              placeholderTextColor="#A0A4B8"
+              placeholderTextColor="#94A3B8"
               maxLength={16}
             />
             {!!accountError && (
@@ -287,6 +303,7 @@ export default function AddBankAccount() {
             <TouchableOpacity
               style={[styles.selectInput, bankError && styles.inputError]}
               onPress={() => setModalVisible(true)}
+              activeOpacity={0.8}
             >
               <Text
                 style={
@@ -295,7 +312,7 @@ export default function AddBankAccount() {
               >
                 {selectedBank || "Select bank"}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#aaa" />
+              <Ionicons name="chevron-down" size={20} color="#64748B" />
             </TouchableOpacity>
             {!!bankError && <Text style={styles.errorText}>{bankError}</Text>}
           </View>
@@ -309,7 +326,7 @@ export default function AddBankAccount() {
               onChangeText={handleBranchChange}
               keyboardType="number-pad"
               placeholder="e.g., 123456"
-              placeholderTextColor="#A0A4B8"
+              placeholderTextColor="#94A3B8"
               maxLength={6}
             />
             {!!branchError && (
@@ -319,14 +336,15 @@ export default function AddBankAccount() {
 
           {/* One‑time switch */}
           <View style={styles.switchRow}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={styles.switchLabel}>One-time beneficiary</Text>
-              <Text style={styles.switchSub}>Used for once-off payment</Text>
+              <Text style={styles.switchSub}>Used for once-off payment only</Text>
             </View>
             <Switch
               value={oneTime}
               onValueChange={setOneTime}
-              trackColor={{ false: "#ccc", true: colors.primary }}
+              trackColor={{ false: "#E2E8F0", true: "#25145F" }}
+              thumbColor={Platform.OS === "android" ? (oneTime ? "#FFFFFF" : "#F8FAFC") : undefined}
             />
           </View>
 
@@ -338,7 +356,7 @@ export default function AddBankAccount() {
               value={reference}
               onChangeText={handleReferenceChange}
               placeholder="M LEHOKO"
-              placeholderTextColor="#A0A4B8"
+              placeholderTextColor="#94A3B8"
               maxLength={25}
             />
             {!!referenceError && (
@@ -348,10 +366,13 @@ export default function AddBankAccount() {
 
           {/* Notification (UI only) */}
           <View style={styles.notificationRow}>
-            <Text style={styles.label}>Payment notification</Text>
-            <TouchableOpacity style={styles.notificationSelector}>
+            <View>
+              <Text style={styles.label}>Payment notification</Text>
+              <Text style={styles.switchSub}>Notify recipient upon payment</Text>
+            </View>
+            <TouchableOpacity style={styles.notificationSelector} activeOpacity={0.8}>
               <Text style={styles.notificationText}>{notification}</Text>
-              <Ionicons name="chevron-down" size={18} color="#888" />
+              <Ionicons name="chevron-down" size={16} color="#475569" />
             </TouchableOpacity>
           </View>
 
@@ -368,7 +389,10 @@ export default function AddBankAccount() {
 
           {createdBeneficiary ? (
             <View style={styles.successBox}>
-              <Text style={styles.successTitle}>Beneficiary saved</Text>
+              <View style={styles.successHeader}>
+                <Ionicons name="checkmark-circle" size={24} color="#166534" />
+                <Text style={styles.successTitle}>Beneficiary Saved</Text>
+              </View>
               <Text style={styles.successText}>
                 {createdBeneficiary.name} is ready for payments.
               </Text>
@@ -379,7 +403,7 @@ export default function AddBankAccount() {
                     router.replace("/beneficiaries/beneficiary-list")
                   }
                 >
-                  <Text style={styles.secondaryButtonText}>View list</Text>
+                  <Text style={styles.secondaryButtonText}>View List</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.payButton}
@@ -394,7 +418,7 @@ export default function AddBankAccount() {
                     })
                   }
                 >
-                  <Text style={styles.payButtonText}>Pay now</Text>
+                  <Text style={styles.payButtonText}>Pay Now</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -406,9 +430,10 @@ export default function AddBankAccount() {
               ]}
               onPress={handleSubmit}
               disabled={!isFormValid() || saving}
+              activeOpacity={0.85}
             >
               {saving ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.submitText}>Add Beneficiary</Text>
               )}
@@ -456,12 +481,12 @@ export default function AddBankAccount() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Bank</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.navy} />
+        <View style={styles.bankModalOverlay}>
+          <View style={styles.bankModalContent}>
+            <View style={styles.bankModalHeader}>
+              <Text style={styles.bankModalTitle}>Select Bank</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color="#1E293B" />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -478,119 +503,198 @@ export default function AddBankAccount() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 80,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-  },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  whiteCard: {
+  container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#25145F",
+  },
+  header: {
+    backgroundColor: "#25145F",
+    paddingTop: Platform.OS === "ios" ? 54 : (StatusBar.currentHeight || 24) + 12,
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitles: {
+    alignItems: "center",
+  },
+  headerCategory: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#E9D5FF",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontSize: 19,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  body: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    padding: 24,
-    marginTop: -20,
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
-  scrollContent: { paddingBottom: 20 },
-  infoText: {
-    fontSize: 13,
-    color: colors.textSub,
-    backgroundColor: "#F8F9FC",
-    padding: 14,
-    borderRadius: 16,
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  infoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F3E8FF",
+    borderWidth: 1,
+    borderColor: "#E9D5FF",
+    borderRadius: 14,
+    padding: 12,
     marginBottom: 20,
-    lineHeight: 18,
   },
-  field: { marginBottom: 20 },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#25145F",
+    lineHeight: 17,
+    fontWeight: "500",
+  },
+  field: {
+    marginBottom: 16,
+  },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.navy,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E293B",
     marginBottom: 6,
   },
   requiredAsterisk: {
-    color: "#FF3B30",
-    fontSize: 14,
+    color: "#EF4444",
+    fontSize: 13,
     fontWeight: "700",
   },
   input: {
-    borderWidth: 1.5,
-    borderColor: colors.greyLine || "#E2E8F0",
-    borderRadius: 14,
-    padding: 14,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
-    backgroundColor: "#FAFAFA",
+    color: "#0F172A",
+    backgroundColor: "#FFFFFF",
     marginBottom: 4,
   },
   inputError: {
-    borderColor: "#FF3B30",
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
   },
   errorText: {
-    color: "#FF3B30",
+    color: "#EF4444",
     fontSize: 12,
     marginLeft: 4,
     marginTop: 2,
+    marginBottom: 4,
   },
   selectInput: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: colors.greyLine || "#E2E8F0",
-    borderRadius: 14,
-    padding: 14,
-    backgroundColor: "#FAFAFA",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    backgroundColor: "#FFFFFF",
     marginBottom: 4,
   },
-  selectText: { fontSize: 15, color: colors.navy },
-  placeholderText: { fontSize: 15, color: "#aaa" },
+  selectText: {
+    fontSize: 15,
+    color: "#0F172A",
+    fontWeight: "500",
+  },
+  placeholderText: {
+    fontSize: 15,
+    color: "#94A3B8",
+  },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
-    backgroundColor: "#F8F9FC",
+    marginTop: 4,
+    marginBottom: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     padding: 14,
-    borderRadius: 16,
+    borderRadius: 14,
   },
   switchLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: colors.navy,
+    fontWeight: "700",
+    color: "#1E293B",
     marginBottom: 2,
   },
-  switchSub: { fontSize: 12, color: colors.textSub },
+  switchSub: {
+    fontSize: 12,
+    color: "#64748B",
+  },
   notificationRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 14,
+    borderRadius: 14,
   },
   notificationSelector: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "#F0F0F0",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    gap: 6,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
   },
-  notificationText: { fontSize: 14, color: colors.navy },
+  notificationText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
   submitButton: {
-    marginTop: 16,
-    backgroundColor: colors.primary,
+    marginTop: 18,
+    backgroundColor: "#25145F",
     borderRadius: 50,
-    paddingVertical: 16,
+    paddingVertical: 15,
     alignItems: "center",
+    shadowColor: "#25145F",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  disabledButton: { opacity: 0.6 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  submitText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
+  },
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -599,119 +703,156 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF2F2",
     borderWidth: 1,
     borderColor: "#FECACA",
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 12,
   },
   errorBannerText: {
     flex: 1,
     color: "#991B1B",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
     lineHeight: 18,
   },
   errorModal: {
     width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 28,
-    padding: 24,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 22,
     alignItems: "center",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
   },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 28,
-    padding: 20,
-    width: "85%",
-    maxHeight: "70%",
+  modalIconCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "#FEF2F2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
-  modalHeader: {
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  modalButton: {
+    marginTop: 20,
+    width: "100%",
+    backgroundColor: "#25145F",
+    borderRadius: 50,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  modalButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  bankModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.55)",
+    justifyContent: "flex-end",
+  },
+  bankModalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === "ios" ? 40 : 24,
+    maxHeight: "75%",
+  },
+  bankModalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    marginBottom: 8,
   },
-  modalIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#FEE2E2",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
+  bankModalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#0F172A",
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: colors.navy },
-  modalMessage: { fontSize: 14, color: colors.textSub, textAlign: "center", marginTop: 8 },
   bankItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 14,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: "#F1F5F9",
   },
-  bankItemText: { fontSize: 16, color: colors.navy },
+  bankItemText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#1E293B",
+  },
   successBox: {
     marginTop: 22,
     backgroundColor: "#F0FDF4",
     borderRadius: 16,
-    padding: 16,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#BBF7D0",
   },
+  successHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   successTitle: {
     fontSize: 16,
-    fontWeight: "800",
+    fontWeight: "700",
     color: "#166534",
   },
   successText: {
-    marginTop: 4,
+    marginTop: 6,
     fontSize: 13,
     color: "#3F6212",
+    lineHeight: 18,
   },
   successActions: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 14,
+    marginTop: 16,
   },
   secondaryButton: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: "#25145F",
     borderRadius: 50,
-    paddingVertical: 13,
+    paddingVertical: 12,
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: colors.primary,
-    fontWeight: "800",
+    color: "#25145F",
+    fontWeight: "700",
   },
   payButton: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: "#25145F",
     borderRadius: 50,
-    paddingVertical: 13,
+    paddingVertical: 12,
     alignItems: "center",
   },
   payButtonText: {
-    color: "#fff",
-    fontWeight: "800",
-  },
-  modalButton: {
-    marginTop: 20,
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  modalButtonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontWeight: "700",
-    fontSize: 15,
   },
 });

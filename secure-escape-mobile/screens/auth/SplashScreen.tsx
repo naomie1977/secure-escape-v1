@@ -67,7 +67,7 @@ export default function SplashScreen({ onLoginPress }: SplashScreenProps) {
 
   return (
     <LinearGradient
-      colors={["#5B8DEF", "#6C63FF", "#00BFA6"]}
+      colors={["#25145F", "#25145F", "#25145F"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
@@ -154,10 +154,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
-    elevation: 10,
   },
   content: {
     width: "100%",
@@ -200,10 +196,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 5,
   },
   primaryButtonText: {
     color: colors.primary,

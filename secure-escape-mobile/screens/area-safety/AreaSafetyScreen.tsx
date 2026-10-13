@@ -9,6 +9,8 @@ import {
   StyleSheet,
   Text,
   View,
+  StatusBar,
+  Platform,
 } from "react-native";
 import MapView, {
   Circle,
@@ -16,6 +18,7 @@ import MapView, {
   PROVIDER_DEFAULT,
   Region,
 } from "react-native-maps";
+import { colors } from "@/utils/theme";
 
 import {
   AreaSafetyResult,
@@ -114,29 +117,29 @@ function getStatusColours(tone: StatusContent["tone"]) {
   switch (tone) {
     case "high":
       return {
-        background: "#FFF4F4",
-        border: "#F1CACA",
-        iconBackground: "#FCE1E1",
-        icon: "#B83232",
-        title: "#8E2929",
+        background: "#FEF2F2",
+        border: "#FECACA",
+        iconBackground: "#FEE2E2",
+        icon: "#DC2626",
+        title: "#991B1B",
       };
 
     case "medium":
       return {
-        background: "#FFF8EB",
-        border: "#F0D8A7",
-        iconBackground: "#FCECCB",
-        icon: "#B16E0D",
-        title: "#85520A",
+        background: "#FFFBEB",
+        border: "#FED7AA",
+        iconBackground: "#FEF3C7",
+        icon: "#D97706",
+        title: "#92400E",
       };
 
     default:
       return {
-        background: "#F1F8F5",
-        border: "#CDE3D8",
-        iconBackground: "#DCEFE6",
-        icon: "#24684A",
-        title: "#1D563D",
+        background: "#F0FDF4",
+        border: "#BBF7D0",
+        iconBackground: "#DCFCE7",
+        icon: "#16A34A",
+        title: "#166534",
       };
   }
 }
@@ -221,6 +224,10 @@ export default function AreaSafetyScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={colors.primaryDark}
+      />
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
@@ -231,7 +238,7 @@ export default function AreaSafetyScreen() {
             pressed && styles.pressed,
           ]}
         >
-          <Ionicons name="chevron-back" size={24} color="#14213D" />
+          <Ionicons name="chevron-back" size={24} color={colors.white} />
         </Pressable>
 
         <View style={styles.headerTextContainer}>
@@ -250,16 +257,16 @@ export default function AreaSafetyScreen() {
           ]}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#1D5FD1" />
+            <ActivityIndicator size="small" color={colors.white} />
           ) : (
-            <Ionicons name="refresh" size={21} color="#1D5FD1" />
+            <Ionicons name="refresh" size={20} color={colors.white} />
           )}
         </Pressable>
       </View>
 
       {isLoading && !result ? (
         <View style={styles.centerState}>
-          <ActivityIndicator size="large" color="#1D5FD1" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.centerStateTitle}>Checking your area</Text>
           <Text style={styles.centerStateText}>
             Using your current location to load nearby safety awareness zones.
@@ -271,7 +278,7 @@ export default function AreaSafetyScreen() {
             <Ionicons
               name="cloud-offline-outline"
               size={30}
-              color="#A33A3A"
+              color={colors.dangerStrong}
             />
           </View>
 
@@ -494,7 +501,7 @@ export default function AreaSafetyScreen() {
                     <Ionicons
                       name="location"
                       size={17}
-                      color="#1D5FD1"
+                      color={colors.primary}
                     />
                     <Text style={styles.currentZoneText}>
                       Your current zone
@@ -508,7 +515,7 @@ export default function AreaSafetyScreen() {
               <Ionicons
                 name="information-circle-outline"
                 size={20}
-                color="#526078"
+                color={colors.textSub}
               />
               <Text style={styles.mapHintText}>
                 Tap a zone marker on the map to view its details.
@@ -520,8 +527,8 @@ export default function AreaSafetyScreen() {
             <View style={styles.guidanceIcon}>
               <Ionicons
                 name="shield-checkmark-outline"
-                size={23}
-                color="#1D5FD1"
+                size={22}
+                color={colors.primary}
               />
             </View>
 
@@ -541,7 +548,7 @@ export default function AreaSafetyScreen() {
             <Ionicons
               name="location-outline"
               size={18}
-              color="#69758A"
+              color={colors.textSub}
             />
             <Text style={styles.privacyText}>
               Your current location is checked when Area Safety loads or is
@@ -558,24 +565,28 @@ export default function AreaSafetyScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F7FB",
+    backgroundColor: colors.primaryDark,
   },
   header: {
-    minHeight: 72,
+    paddingTop:
+      Platform.OS === "android"
+        ? (StatusBar.currentHeight ?? 24) + 8
+        : 52,
+    paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E6EAF0",
+    backgroundColor: colors.primaryDark,
   },
   headerButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F3F6FA",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   pressed: {
     opacity: 0.65,
@@ -585,17 +596,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   headerTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#14213D",
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.white,
   },
   headerSubtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: "#6A7486",
+    color: "#E4E1FF",
   },
   scrollView: {
     flex: 1,
+    backgroundColor: colors.surfaceMuted,
   },
   content: {
     padding: 16,
@@ -606,35 +618,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: colors.surfaceMuted,
   },
   centerStateTitle: {
     marginTop: 16,
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#14213D",
+    color: colors.navy,
     textAlign: "center",
   },
   centerStateText: {
     marginTop: 8,
-    fontSize: 14,
-    lineHeight: 21,
-    color: "#667085",
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSub,
     textAlign: "center",
   },
   errorIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FCEAEA",
+    backgroundColor: colors.dangerBg,
   },
   retryButton: {
     marginTop: 20,
     paddingHorizontal: 20,
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: "#1D5FD1",
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
@@ -650,29 +663,29 @@ const styles = StyleSheet.create({
   },
   statusCard: {
     padding: 16,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     flexDirection: "row",
   },
   statusIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 13,
+    marginRight: 12,
   },
   statusText: {
     flex: 1,
   },
   statusTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
   },
   statusDescription: {
-    marginTop: 5,
+    marginTop: 4,
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 18,
     color: "#4C5668",
   },
   distanceText: {
@@ -682,69 +695,69 @@ const styles = StyleSheet.create({
     color: "#697386",
   },
   sectionHeading: {
-    marginTop: 24,
-    marginBottom: 11,
+    marginTop: 20,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#17233D",
+    color: colors.navy,
   },
   sectionSubtitle: {
-    marginTop: 3,
+    marginTop: 2,
     fontSize: 12,
-    color: "#707B8D",
+    color: colors.textSub,
   },
   livePill: {
     paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingVertical: 5,
+    borderRadius: 6,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EAF2FF",
+    backgroundColor: colors.primarySubtle,
   },
   liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 6,
-    backgroundColor: "#1D5FD1",
+    backgroundColor: colors.primary,
   },
   liveText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#1D5FD1",
+    color: colors.primary,
   },
   mapCard: {
-    height: 390,
+    height: 380,
     overflow: "hidden",
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#DFE4EC",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   map: {
     flex: 1,
   },
   legend: {
     position: "absolute",
-    left: 12,
-    bottom: 12,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    borderRadius: 12,
+    left: 10,
+    bottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderWidth: 1,
-    borderColor: "#E2E6EC",
+    borderColor: colors.border,
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 10,
   },
   legendDot: {
     width: 8,
@@ -755,15 +768,15 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#465268",
+    color: colors.navy,
   },
   zoneCard: {
     marginTop: 12,
     padding: 16,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E1E5EB",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   zoneHeader: {
     flexDirection: "row",
@@ -774,41 +787,41 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   zoneName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#17233D",
+    color: colors.navy,
   },
   zoneDescription: {
-    marginTop: 5,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#626D80",
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textSub,
   },
   riskBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     flexDirection: "row",
     alignItems: "center",
   },
   riskBadgeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    marginRight: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
   },
   riskBadgeText: {
     fontSize: 11,
     fontWeight: "700",
   },
   zoneMetaRow: {
-    marginTop: 14,
-    paddingTop: 12,
+    marginTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#EDF0F4",
+    borderTopColor: colors.border,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 14,
+    gap: 12,
   },
   zoneMetaItem: {
     flexDirection: "row",
@@ -817,43 +830,45 @@ const styles = StyleSheet.create({
   zoneMetaText: {
     marginLeft: 6,
     fontSize: 12,
-    color: "#5C677D",
+    color: colors.textSub,
   },
   currentZoneText: {
     marginLeft: 5,
     fontSize: 12,
     fontWeight: "700",
-    color: "#1D5FD1",
+    color: colors.primary,
   },
   mapHint: {
     marginTop: 12,
-    padding: 13,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EEF2F7",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   mapHintText: {
     flex: 1,
-    marginLeft: 9,
+    marginLeft: 8,
     fontSize: 12,
-    lineHeight: 18,
-    color: "#596579",
+    lineHeight: 17,
+    color: colors.textSub,
   },
   guidanceCard: {
-    marginTop: 20,
+    marginTop: 16,
     padding: 16,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#DCE4F0",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     flexDirection: "row",
   },
   guidanceIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: "#EAF2FF",
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.primarySubtle,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -864,16 +879,16 @@ const styles = StyleSheet.create({
   guidanceTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#17233D",
+    color: colors.navy,
   },
   guidanceText: {
-    marginTop: 5,
+    marginTop: 4,
     fontSize: 12,
-    lineHeight: 18,
-    color: "#626D80",
+    lineHeight: 17,
+    color: colors.textSub,
   },
   privacyRow: {
-    marginTop: 18,
+    marginTop: 16,
     paddingHorizontal: 4,
     flexDirection: "row",
     alignItems: "flex-start",
@@ -882,7 +897,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 11,
-    lineHeight: 17,
-    color: "#737E90",
+    lineHeight: 16,
+    color: colors.textSub,
   },
 });

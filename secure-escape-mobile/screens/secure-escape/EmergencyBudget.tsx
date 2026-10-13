@@ -438,7 +438,7 @@ export default function EmergencyBudgetScreen() {
       showsVerticalScrollIndicator={false}
     >
       <LinearGradient
-        colors={["#5B8DEF", "#6C63FF"]}
+        colors={["#25145F", "#25145F"]}
         style={styles.gradientHeader}
       >
         <TouchableOpacity
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     marginTop: 12,
-    borderRadius: 50,
+    borderRadius: 12,
     overflow: "hidden",
     marginBottom: 20,
   },
@@ -1035,7 +1035,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   modalConfirmButton: {
-    borderRadius: 50,
+    borderRadius: 12,
     overflow: "hidden",
     marginTop: 4,
   },

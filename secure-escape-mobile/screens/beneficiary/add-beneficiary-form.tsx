@@ -12,10 +12,10 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/utils/theme";
+import { colors, radii } from "@/utils/theme";
 import { useRouter } from "expo-router";
 import { addBeneficiary } from "@/services/beneficiaryService";
 import { BeneficiaryResponse } from "@/types/beneficiary";
@@ -162,22 +162,42 @@ export default function AddBeneficiaryForm() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={["#5B8DEF", "#6C63FF"]} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Beneficiary</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
+      <StatusBar barStyle="light-content" backgroundColor="#25145F" />
+
+      {/* Deep-purple app bar */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerTitles}>
+            <Text style={styles.headerCategory}>CAPITEC CELLPHONE</Text>
+            <Text style={styles.headerTitle}>Add Beneficiary</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+      </View>
 
       <KeyboardAvoidingView
-        style={styles.whiteCard}
+        style={styles.body}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
+          <View style={styles.infoBanner}>
+            <Ionicons name="information-circle-outline" size={20} color="#25145F" />
+            <Text style={styles.infoText}>
+              Pay any registered Capitec client instantly using their 10-digit South African cellphone number.
+            </Text>
+          </View>
+
           {/* Beneficiary Name */}
           <Text style={styles.label}>
             Beneficiary Name <Text style={styles.requiredAsterisk}>*</Text>
@@ -187,7 +207,7 @@ export default function AddBeneficiaryForm() {
             value={name}
             onChangeText={handleNameChange}
             placeholder="Mr M Djonga"
-            placeholderTextColor="#A0A4B8"
+            placeholderTextColor="#94A3B8"
             maxLength={25}
           />
           {!!nameError && <Text style={styles.errorText}>{nameError}</Text>}
@@ -202,7 +222,7 @@ export default function AddBeneficiaryForm() {
             onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
             placeholder="082 123 4567"
-            placeholderTextColor="#A0A4B8"
+            placeholderTextColor="#94A3B8"
             maxLength={10}
           />
           {!!phoneError && <Text style={styles.errorText}>{phoneError}</Text>}
@@ -216,7 +236,7 @@ export default function AddBeneficiaryForm() {
             value={reference}
             onChangeText={handleReferenceChange}
             placeholder="M LEHOKO"
-            placeholderTextColor="#A0A4B8"
+            placeholderTextColor="#94A3B8"
             maxLength={25}
           />
           {!!referenceError && (
@@ -225,23 +245,27 @@ export default function AddBeneficiaryForm() {
 
           {/* One-time beneficiary switch */}
           <View style={styles.switchRow}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={styles.switchLabel}>One-time beneficiary</Text>
-              <Text style={styles.switchSub}>Used for once-off payment</Text>
+              <Text style={styles.switchSub}>Used for once-off payment only</Text>
             </View>
             <Switch
               value={oneTime}
               onValueChange={setOneTime}
-              trackColor={{ false: "#ccc", true: colors.primary }}
+              trackColor={{ false: "#E2E8F0", true: "#25145F" }}
+              thumbColor={Platform.OS === "android" ? (oneTime ? "#FFFFFF" : "#F8FAFC") : undefined}
             />
           </View>
 
           {/* Payment notification (UI only) */}
           <View style={styles.notificationRow}>
-            <Text style={styles.label}>Payment notification</Text>
-            <TouchableOpacity style={styles.notificationSelector}>
+            <View>
+              <Text style={styles.label}>Payment notification</Text>
+              <Text style={styles.switchSub}>Notify recipient upon payment</Text>
+            </View>
+            <TouchableOpacity style={styles.notificationSelector} activeOpacity={0.8}>
               <Text style={styles.notificationText}>{notification}</Text>
-              <Ionicons name="chevron-down" size={18} color="#888" />
+              <Ionicons name="chevron-down" size={16} color="#475569" />
             </TouchableOpacity>
           </View>
 
@@ -258,7 +282,10 @@ export default function AddBeneficiaryForm() {
 
           {createdBeneficiary ? (
             <View style={styles.successBox}>
-              <Text style={styles.successTitle}>Beneficiary saved</Text>
+              <View style={styles.successHeader}>
+                <Ionicons name="checkmark-circle" size={24} color="#166534" />
+                <Text style={styles.successTitle}>Beneficiary Saved</Text>
+              </View>
               <Text style={styles.successText}>
                 {createdBeneficiary.name} is ready for payments.
               </Text>
@@ -269,7 +296,7 @@ export default function AddBeneficiaryForm() {
                     router.replace("/beneficiaries/beneficiary-list")
                   }
                 >
-                  <Text style={styles.secondaryButtonText}>View list</Text>
+                  <Text style={styles.secondaryButtonText}>View List</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.payButton}
@@ -284,7 +311,7 @@ export default function AddBeneficiaryForm() {
                     })
                   }
                 >
-                  <Text style={styles.payButtonText}>Pay now</Text>
+                  <Text style={styles.payButtonText}>Pay Now</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -296,11 +323,12 @@ export default function AddBeneficiaryForm() {
               ]}
               onPress={handleSubmit}
               disabled={!isFormValid() || saving}
+              activeOpacity={0.85}
             >
               {saving ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitText}>Add</Text>
+                <Text style={styles.submitText}>Add Beneficiary</Text>
               )}
             </TouchableOpacity>
           )}
@@ -343,97 +371,175 @@ export default function AddBeneficiaryForm() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 80,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-  },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  whiteCard: {
+  container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#25145F",
+  },
+  header: {
+    backgroundColor: "#25145F",
+    paddingTop: Platform.OS === "ios" ? 54 : (StatusBar.currentHeight || 24) + 12,
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitles: {
+    alignItems: "center",
+  },
+  headerCategory: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#E9D5FF",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontSize: 19,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  body: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    padding: 24,
-    marginTop: -20,
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
-  scrollContent: { paddingBottom: 20 },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  infoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F3E8FF",
+    borderWidth: 1,
+    borderColor: "#E9D5FF",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 20,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#25145F",
+    lineHeight: 17,
+    fontWeight: "500",
+  },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.navy,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E293B",
     marginBottom: 6,
   },
   requiredAsterisk: {
-    color: "#FF3B30",
-    fontSize: 14,
+    color: "#EF4444",
+    fontSize: 13,
     fontWeight: "700",
   },
   input: {
-    borderWidth: 1.5,
-    borderColor: colors.greyLine || "#E2E8F0",
-    borderRadius: 14,
-    padding: 14,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
-    backgroundColor: "#FAFAFA",
+    color: "#0F172A",
+    backgroundColor: "#FFFFFF",
     marginBottom: 4,
   },
   inputError: {
-    borderColor: "#FF3B30",
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
   },
   errorText: {
-    color: "#FF3B30",
+    color: "#EF4444",
     fontSize: 12,
     marginLeft: 4,
     marginTop: 2,
+    marginBottom: 6,
   },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginTop: 18,
     marginBottom: 12,
-    backgroundColor: "#F8F9FC",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     padding: 14,
-    borderRadius: 16,
+    borderRadius: 14,
   },
   switchLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: colors.navy,
+    fontWeight: "700",
+    color: "#1E293B",
     marginBottom: 2,
   },
-  switchSub: { fontSize: 12, color: colors.textSub },
+  switchSub: {
+    fontSize: 12,
+    color: "#64748B",
+  },
   notificationRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 8,
+    marginBottom: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 14,
+    borderRadius: 14,
   },
   notificationSelector: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "#F5F5F5",
+    gap: 6,
+    backgroundColor: "#F1F5F9",
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 7,
+    borderRadius: 16,
   },
-  notificationText: { fontSize: 14, color: colors.navy },
+  notificationText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
   submitButton: {
-    marginTop: 28,
-    backgroundColor: colors.primary,
+    marginTop: 24,
+    backgroundColor: "#25145F",
     borderRadius: 50,
-    paddingVertical: 16,
+    paddingVertical: 15,
     alignItems: "center",
+    shadowColor: "#25145F",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  disabledButton: { opacity: 0.6 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  submitText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
+  },
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -442,34 +548,34 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF2F2",
     borderWidth: 1,
     borderColor: "#FECACA",
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 12,
   },
   errorBannerText: {
     flex: 1,
     color: "#991B1B",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
     lineHeight: 18,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
   },
   errorModal: {
     width: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
     padding: 22,
     alignItems: "center",
   },
   modalIconCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: "#FEF2F2",
     alignItems: "center",
     justifyContent: "center",
@@ -477,13 +583,13 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "800",
-    color: colors.navy,
+    fontWeight: "700",
+    color: "#1E293B",
     textAlign: "center",
   },
   modalMessage: {
     marginTop: 8,
-    color: colors.textSub,
+    color: "#64748B",
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
@@ -491,60 +597,66 @@ const styles = StyleSheet.create({
   modalButton: {
     marginTop: 20,
     width: "100%",
-    backgroundColor: colors.primary,
+    backgroundColor: "#25145F",
     borderRadius: 50,
     paddingVertical: 14,
     alignItems: "center",
   },
   modalButtonText: {
-    color: "#fff",
-    fontWeight: "800",
+    color: "#FFFFFF",
+    fontWeight: "700",
     fontSize: 15,
   },
   successBox: {
     marginTop: 22,
     backgroundColor: "#F0FDF4",
     borderRadius: 16,
-    padding: 16,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#BBF7D0",
   },
+  successHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   successTitle: {
     fontSize: 16,
-    fontWeight: "800",
+    fontWeight: "700",
     color: "#166534",
   },
   successText: {
-    marginTop: 4,
+    marginTop: 6,
     fontSize: 13,
     color: "#3F6212",
+    lineHeight: 18,
   },
   successActions: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 14,
+    marginTop: 16,
   },
   secondaryButton: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: "#25145F",
     borderRadius: 50,
-    paddingVertical: 13,
+    paddingVertical: 12,
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: colors.primary,
-    fontWeight: "800",
+    color: "#25145F",
+    fontWeight: "700",
   },
   payButton: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: "#25145F",
     borderRadius: 50,
-    paddingVertical: 13,
+    paddingVertical: 12,
     alignItems: "center",
   },
   payButtonText: {
-    color: "#fff",
-    fontWeight: "800",
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
 });

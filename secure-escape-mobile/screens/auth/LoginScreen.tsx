@@ -44,6 +44,8 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [loginLocked, setLoginLocked] = useState(false);
 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
@@ -677,20 +679,24 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   */
   if (requiresTwoFactorSetup) {
     return (
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.twoFactorScrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.twoFactorContainer}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>Secure Escape</Text>
+      <View style={styles.root}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.twoFactorScrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Brand */}
+          <View style={styles.brandBlock}>
+            <Text style={styles.logoText}>
+              Secure<Text style={styles.logoO}>E</Text>scape
+            </Text>
+            <Text style={styles.brandSubtitle}>Secure banking, simply.</Text>
           </View>
 
           <View style={styles.twoFactorCard}>
             <View style={styles.securityIconCircle}>
-              <Text style={styles.securityIcon}>âœ“</Text>
+              <Text style={styles.securityIcon}>✓</Text>
             </View>
 
             <Text style={styles.twoFactorTitle}>Set up Authenticator</Text>
@@ -723,8 +729,8 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               <View style={styles.stepContent}>
                 <Text style={styles.stepTitle}>Enter this setup key</Text>
                 <Text style={styles.stepDescription}>
-                  Use Secure Escape as the account name and select
-                  time-based authentication if your authenticator asks.
+                  Use Secure Escape as the account name and select time-based
+                  authentication if your authenticator asks.
                 </Text>
               </View>
             </View>
@@ -756,49 +762,43 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               </View>
             </View>
 
-            <Text style={styles.twoFactorLabel}>6-digit code</Text>
+            <Text style={styles.fieldLabel}>6-digit code</Text>
 
             <TextInput
               style={[
                 styles.twoFactorInput,
-                twoFactorSetupError && styles.inputError,
+                twoFactorSetupError ? styles.inputError : null,
               ]}
               value={twoFactorSetupCode}
               onChangeText={handleTwoFactorSetupCodeChange}
               keyboardType="number-pad"
               maxLength={6}
               placeholder="000000"
-              placeholderTextColor="#B8BDC8"
+              placeholderTextColor="#9CA3AF"
               textContentType="oneTimeCode"
             />
 
-            {twoFactorSetupError && (
-              <Text style={styles.twoFactorError}>
-                {twoFactorSetupError}
-              </Text>
-            )}
+            {twoFactorSetupError ? (
+              <Text style={styles.fieldError}>{twoFactorSetupError}</Text>
+            ) : null}
 
             <TouchableOpacity
               style={[
-                styles.submitButton,
+                styles.primaryButton,
                 (twoFactorSetupCode.length !== 6 || isSubmitting) &&
-                  styles.disabledButton,
+                  styles.primaryButtonDisabled,
               ]}
               onPress={handleConfirmTwoFactorSetup}
               disabled={twoFactorSetupCode.length !== 6 || isSubmitting}
+              activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={[colors.primary, colors.primary]}
-                style={styles.gradientButton}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitText}>
-                    Confirm and continue
-                  </Text>
-                )}
-              </LinearGradient>
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.primaryButtonText}>
+                  Confirm and continue
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -809,8 +809,8 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               <Text style={styles.backButtonText}>Back to sign in</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -822,20 +822,24 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   */
   if (requiresTwoFactor) {
     return (
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.twoFactorScrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.twoFactorContainer}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>Secure Escape</Text>
+      <View style={styles.root}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.twoFactorScrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Brand */}
+          <View style={styles.brandBlock}>
+            <Text style={styles.logoText}>
+              Secure<Text style={styles.logoO}>E</Text>scape
+            </Text>
+            <Text style={styles.brandSubtitle}>Secure banking, simply.</Text>
           </View>
 
           <View style={styles.twoFactorCard}>
             <View style={styles.securityIconCircle}>
-              <Text style={styles.securityIcon}>âœ“</Text>
+              <Text style={styles.securityIcon}>✓</Text>
             </View>
 
             <Text style={styles.twoFactorTitle}>
@@ -847,46 +851,42 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               complete sign in.
             </Text>
 
-            <Text style={styles.twoFactorLabel}>6-digit code</Text>
+            <Text style={styles.fieldLabel}>6-digit code</Text>
 
             <TextInput
               style={[
                 styles.twoFactorInput,
-                twoFactorError && styles.inputError,
+                twoFactorError ? styles.inputError : null,
               ]}
               value={twoFactorCode}
               onChangeText={handleTwoFactorCodeChange}
               keyboardType="number-pad"
               maxLength={6}
               placeholder="000000"
-              placeholderTextColor="#B8BDC8"
+              placeholderTextColor="#9CA3AF"
               textContentType="oneTimeCode"
               autoFocus
             />
 
-            {twoFactorError && (
-              <Text style={styles.twoFactorError}>{twoFactorError}</Text>
-            )}
+            {twoFactorError ? (
+              <Text style={styles.fieldError}>{twoFactorError}</Text>
+            ) : null}
 
             <TouchableOpacity
               style={[
-                styles.submitButton,
+                styles.primaryButton,
                 (twoFactorCode.length !== 6 || isSubmitting) &&
-                  styles.disabledButton,
+                  styles.primaryButtonDisabled,
               ]}
               onPress={handleVerifyTwoFactor}
               disabled={twoFactorCode.length !== 6 || isSubmitting}
+              activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={[colors.primary, colors.primary]}
-                style={styles.gradientButton}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitText}>Verify and sign in</Text>
-                )}
-              </LinearGradient>
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Verify and sign in</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -897,156 +897,162 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               <Text style={styles.backButtonText}>Back to sign in</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     );
   }
 
+  const canSubmit = isFormValid() && !isSubmitting;
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.topBar}>
-        <View style={{ width: 24 }} />
-        <View style={{ width: 24 }} />
-      </View>
-
-      <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>Secure Escape</Text>
-      </View>
-
-      {biometricOption.available && (
-        <TouchableOpacity
-          style={styles.biometricLoginButton}
-          onPress={handleBiometricLogin}
-        >
-          <Text style={styles.biometricLoginText}>
-            Log in with {biometricOption.label}
+    <View style={styles.root}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Brand */}
+        <View style={styles.brandBlock}>
+          <Text style={styles.logoText}>
+            Secure<Text style={styles.logoO}>E</Text>scape
           </Text>
-        </TouchableOpacity>
-      )}
-
-      <View style={styles.pinArea}>
-        <View style={styles.pinLabelRow}>
-          <Text style={styles.pinLabel}>
-            Email <Text style={styles.required}></Text>
-          </Text>
+          <Text style={styles.brandSubtitle}>Secure banking, simply.</Text>
         </View>
 
-        <TextInput
-          style={[styles.textInput, emailError && styles.inputError]}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={handleEmailChange}
-          onBlur={handleEmailBlur}
-          placeholder="Enter your email"
-          placeholderTextColor="#ccc"
-          maxLength={40}
-        />
-
-        {emailError && <Text style={styles.fieldError}>{emailError}</Text>}
-
-        <View style={[styles.pinLabelRow, { marginTop: 16 }]}>
-          <Text style={styles.pinLabel}>
-            Enter app PIN <Text style={styles.required}></Text>
-          </Text>
-
-          <TouchableOpacity>
-            <Text style={styles.forgotPin}>Forgot PIN</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TextInput
-          style={[styles.pinInput, pinError && styles.inputError]}
-          secureTextEntry
-          maxLength={4}
-          keyboardType="numeric"
-          value={pin}
-          onChangeText={handlePinChange}
-          onBlur={handlePinBlur}
-          placeholder="â€¢ â€¢ â€¢ â€¢"
-          placeholderTextColor="#ccc"
-        />
-
-        {pinError && <Text style={styles.fieldError}>{pinError}</Text>}
-
-        {error && !emailError && !pinError && (
+        {/* Biometric quick login (only when available) */}
+        {biometricOption.available && (
           <TouchableOpacity
-            style={styles.errorBanner}
-            activeOpacity={0.8}
-            onPress={() => setShowErrorModal(true)}
+            style={styles.biometricLoginButton}
+            onPress={handleBiometricLogin}
+            activeOpacity={0.85}
           >
-            <Text style={styles.errorIcon}>!</Text>
-            <Text style={styles.errorBannerText}>{error}</Text>
+            <Text style={styles.biometricLoginText}>
+              Log in with {biometricOption.label}
+            </Text>
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            (!isFormValid() || isSubmitting) && styles.disabledButton,
-          ]}
-          onPress={handleSubmit}
-          disabled={!isFormValid() || isSubmitting}
-        >
-          <LinearGradient
-            colors={[colors.primary, colors.primary]}
-            style={styles.gradientButton}
+        {/* Form */}
+        <View style={styles.formArea}>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Email</Text>
+            <TextInput
+              style={[styles.input, emailError ? styles.inputError : null]}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={handleEmailChange}
+              editable={!loginLocked}
+              onBlur={handleEmailBlur}
+              placeholder="Enter your email"
+              placeholderTextColor="#9CA3AF"
+              maxLength={40}
+            />
+            {emailError ? (
+              <Text style={styles.fieldError}>{emailError}</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.field}>
+            <View style={styles.labelRow}>
+              <Text style={styles.fieldLabel}>Enter app PIN</Text>
+              <TouchableOpacity
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.inlineLink}>Forgot PIN</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={[
+                styles.input,
+                styles.pinInput,
+                pinError ? styles.inputError : null,
+              ]}
+              secureTextEntry
+              maxLength={4}
+              keyboardType="numeric"
+              value={pin}
+              onChangeText={handlePinChange}
+              editable={!loginLocked}
+              onBlur={handlePinBlur}
+              placeholder="••••"
+              placeholderTextColor="#9CA3AF"
+            />
+            {pinError ? (
+              <Text style={styles.fieldError}>{pinError}</Text>
+            ) : null}
+          </View>
+
+          {/* Inline error banner */}
+          {error && !emailError && !pinError ? (
+            <TouchableOpacity
+              style={styles.errorBanner}
+              activeOpacity={0.85}
+              onPress={() => setShowErrorModal(true)}
+            >
+              <View style={styles.errorBadge}>
+                <Text style={styles.errorBadgeText}>!</Text>
+              </View>
+              <Text style={styles.errorBannerText}>{error}</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              (!canSubmit || loginLocked) && styles.primaryButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={!canSubmit || loginLocked}
+            activeOpacity={0.85}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.submitText}>Submit</Text>
+              <Text style={styles.primaryButtonText}>Submit</Text>
             )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.biometricsSection}>
-        <View style={styles.biometricsRow}>
-          <View style={styles.biometricsText}>
-            <Text style={styles.biometricsTitle}>Biometrics</Text>
-
-            <Text style={styles.biometricsSubtitle}>
-              Sign in and authenticate with fingerprint or facial recognition
-            </Text>
-          </View>
-
-          <Switch
-            value={biometricsEnabled}
-            onValueChange={setBiometricsEnabled}
-            trackColor={{
-              false: colors.greyLine,
-              true: colors.primary,
-            }}
-            thumbColor="#fff"
-          />
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.dontShowRow}
-          onPress={() => setDontShowAgain(!dontShowAgain)}
-          activeOpacity={0.7}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              dontShowAgain && styles.checkboxChecked,
-            ]}
-          >
-            {dontShowAgain && <Text style={styles.checkmark}>âœ“</Text>}
+        {/* Biometrics enrolment */}
+        <View style={styles.biometricsCard}>
+          <View style={styles.biometricsRow}>
+            <View style={styles.biometricsText}>
+              <Text style={styles.biometricsTitle}>Biometrics</Text>
+              <Text style={styles.biometricsSubtitle}>
+                Sign in and authenticate with fingerprint or facial recognition
+              </Text>
+            </View>
+            <Switch
+              value={biometricsEnabled}
+              onValueChange={setBiometricsEnabled}
+              trackColor={{ false: "#D6D9E0", true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
           </View>
 
-          <Text style={styles.dontShowText}>
-            Don&apos;t show me this again
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setDontShowAgain(!dontShowAgain)}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                dontShowAgain && styles.checkboxChecked,
+              ]}
+            >
+              {dontShowAgain ? <Text style={styles.checkmark}>✓</Text> : null}
+            </View>
+            <Text style={styles.checkboxLabel}>
+              Don&apos;t show me this again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
+      {/* Error modal */}
       <Modal
         transparent
         visible={showErrorModal && !!error}
@@ -1054,13 +1060,15 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         onRequestClose={() => setShowErrorModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.errorModal}>
+          <View style={styles.modalCard}>
             <View style={styles.modalIconCircle}>
-              <Text style={styles.modalIcon}>!</Text>
+              <Text style={styles.modalIconText}>!</Text>
             </View>
-
-            <Text style={styles.modalTitle}>Could not sign in</Text>
-
+            <Text style={styles.modalTitle}>
+              {loginLocked
+                ? "Sign-in temporarily locked"
+                : "Could not sign in"}
+            </Text>
             <Text style={styles.modalMessage}>{error}</Text>
 
             <TouchableOpacity
@@ -1073,224 +1081,258 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           </View>
         </View>
       </Modal>
-
-      <View style={styles.bottomSpacer} />
-    </ScrollView>
+    </View>
   );
 }
 
+const T = {
+  sp4: 4,
+  sp8: 8,
+  sp12: 12,
+  sp16: 16,
+  sp20: 20,
+  sp24: 24,
+  sp32: 32,
+  sp40: 40,
+  radiusSm: 6,
+  radiusMd: 8,
+  radiusLg: 12,
+  radiusXl: 16,
+  inputH: 52,
+  buttonH: 52,
+  surface: "#FFFFFF",
+  surfaceMuted: "#F7F8FA",
+  border: "#E4E6EC",
+  borderStrong: "#D6D9E0",
+  textPrimary: "#0F172A",
+  textMuted: "#64748B",
+  danger: "#DC2626",
+  dangerBg: "#FEF2F2",
+  dangerBorder: "#FECACA",
+  dangerText: "#991B1B",
+};
+
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: T.surface,
+  },
+
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: T.surface,
   },
 
   scrollContent: {
-    paddingBottom: 40,
+    paddingHorizontal: T.sp24,
+    paddingTop: Platform.OS === "ios" ? 72 : 56,
+    paddingBottom: T.sp40,
   },
 
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  /* Brand */
+  brandBlock: {
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 75,
-    marginBottom: 20,
-  },
-
-  logoContainer: {
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 40,
+    marginBottom: T.sp32,
   },
 
   logoText: {
-    fontSize: 42,
+    fontSize: 34,
     fontWeight: "800",
-    color: colors.navy,
-    letterSpacing: -1,
+    color: colors.navy ?? T.textPrimary,
+    letterSpacing: -0.5,
   },
 
   logoO: {
-    borderWidth: 4,
-    borderColor: colors.gradientEnd,
-    borderRadius: 38,
-    width: 42,
-    height: 42,
-    textAlign: "center",
-    lineHeight: 36,
-    marginHorizontal: 2,
-    fontSize: 36,
-    fontWeight: "800",
-    color: colors.navy,
+    color: colors.primary,
   },
 
-  pinArea: {
-    paddingHorizontal: 24,
-    marginBottom: 30,
+  brandSubtitle: {
+    marginTop: T.sp8,
+    fontSize: 14,
+    color: T.textMuted,
   },
 
-  pinLabelRow: {
+  /* Biometric Quick Login */
+  biometricLoginButton: {
+    marginBottom: T.sp20,
+    paddingVertical: 14,
+    borderRadius: T.radiusMd,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: "center",
+    backgroundColor: "#F5F3FF",
+  },
+
+  biometricLoginText: {
+    color: colors.primary,
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  /* Form */
+  formArea: {
+    marginBottom: T.sp24,
+  },
+
+  field: {
+    marginBottom: T.sp16,
+  },
+
+  labelRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
+    marginBottom: T.sp8,
   },
 
-  pinLabel: {
-    fontSize: 14,
-    color: colors.textSub,
-  },
-
-  required: {
-    color: "#DC2626",
-    fontWeight: "700",
-  },
-
-  forgotPin: {
+  fieldLabel: {
     fontSize: 13,
-    color: colors.gradientEnd,
-    textDecorationLine: "underline",
+    fontWeight: "600",
+    color: colors.navy ?? T.textPrimary,
+    marginBottom: T.sp8,
   },
 
-  textInput: {
+  inlineLink: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+
+  input: {
+    height: T.inputH,
+    borderRadius: T.radiusMd,
     borderWidth: 1.5,
-    borderColor: colors.greyLine,
-    borderRadius: 16,
-    padding: 14,
-    fontSize: 16,
-    backgroundColor: "#FAFAFA",
-    marginBottom: 4,
+    borderColor: T.border,
+    paddingHorizontal: T.sp16,
+    fontSize: 15,
+    color: T.textPrimary,
+    backgroundColor: T.surface,
   },
 
   pinInput: {
-    borderWidth: 1.5,
-    borderColor: colors.greyLine,
-    borderRadius: 16,
-    padding: 14,
     fontSize: 20,
     letterSpacing: 8,
     textAlign: "center",
-    backgroundColor: "#FAFAFA",
-    marginBottom: 4,
   },
 
   inputError: {
-    borderColor: "#DC2626",
-    borderWidth: 2,
+    borderColor: T.danger,
   },
 
   fieldError: {
-    color: "#DC2626",
+    marginTop: T.sp4,
     fontSize: 12,
-    fontWeight: "600",
-    marginTop: 4,
-    marginBottom: 8,
+    color: T.danger,
+    fontWeight: "500",
   },
 
-  submitButton: {
-    marginTop: 28,
-    borderRadius: 50,
-    overflow: "hidden",
-  },
-
-  gradientButton: {
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-
-  submitText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-
-  disabledButton: {
-    opacity: 0.6,
-  },
-
+  /* Error Banner */
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 16,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: T.dangerBg,
+    borderColor: T.dangerBorder,
     borderWidth: 1,
-    borderColor: "#FECACA",
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: T.radiusMd,
+    padding: T.sp12,
+    marginBottom: T.sp16,
+    gap: T.sp8,
   },
 
-  errorIcon: {
+  errorBadge: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#DC2626",
-    color: "#fff",
-    textAlign: "center",
-    lineHeight: 20,
-    fontWeight: "900",
+    backgroundColor: T.danger,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  errorBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
   },
 
   errorBannerText: {
     flex: 1,
-    color: "#991B1B",
     fontSize: 13,
-    fontWeight: "700",
+    color: T.dangerText,
+    fontWeight: "500",
     lineHeight: 18,
   },
 
-  biometricsSection: {
-    marginHorizontal: 20,
-    backgroundColor: "#F8F9FC",
-    borderRadius: 20,
-    padding: 18,
+  /* Primary Button */
+  primaryButton: {
+    height: T.buttonH,
+    borderRadius: T.radiusMd,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: T.sp8,
+  },
+
+  primaryButtonDisabled: {
+    opacity: 0.5,
+  },
+
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+
+  /* Biometrics Enrolment Card */
+  biometricsCard: {
+    backgroundColor: T.surfaceMuted,
+    borderRadius: T.radiusLg,
     borderWidth: 1,
-    borderColor: colors.greyLine,
-    marginTop: 10,
+    borderColor: T.border,
+    padding: T.sp16,
   },
 
   biometricsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    justifyContent: "space-between",
+    marginBottom: T.sp16,
   },
 
   biometricsText: {
     flex: 1,
-    marginRight: 12,
+    marginRight: T.sp16,
   },
 
   biometricsTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
-    color: colors.navy,
-    marginBottom: 4,
+    color: colors.navy ?? T.textPrimary,
+    marginBottom: T.sp4,
   },
 
   biometricsSubtitle: {
-    fontSize: 13,
-    color: colors.textSub,
-    lineHeight: 18,
+    fontSize: 12,
+    color: T.textMuted,
+    lineHeight: 17,
   },
 
-  dontShowRow: {
+  checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginTop: 8,
+    gap: T.sp8,
+    paddingTop: T.sp4,
   },
 
   checkbox: {
-    width: 22,
-    height: 22,
-    borderWidth: 2,
-    borderColor: colors.greyLine,
-    borderRadius: 6,
-    backgroundColor: "#fff",
+    width: 20,
+    height: 20,
+    borderRadius: T.radiusSm,
+    borderWidth: 1.5,
+    borderColor: T.borderStrong,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: T.surface,
   },
 
   checkboxChecked: {
@@ -1299,215 +1341,150 @@ const styles = StyleSheet.create({
   },
 
   checkmark: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
   },
 
-  dontShowText: {
-    fontSize: 13,
-    color: colors.textSub,
+  checkboxLabel: {
+    fontSize: 12,
+    color: T.textMuted,
   },
 
-  bottomSpacer: {
-    height: 30,
-  },
-
+  /* Modal */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.45)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: T.sp24,
   },
 
-  errorModal: {
+  modalCard: {
     width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 22,
+    backgroundColor: T.surface,
+    borderRadius: T.radiusLg,
+    padding: T.sp24,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: T.border,
   },
 
   modalIconCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "#FEF2F2",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: T.dangerBg,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: T.sp16,
   },
 
-  modalIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#DC2626",
-    color: "#fff",
-    textAlign: "center",
-    lineHeight: 30,
-    fontWeight: "900",
-    fontSize: 18,
+  modalIconText: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: T.danger,
   },
 
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: colors.navy,
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.navy ?? T.textPrimary,
     textAlign: "center",
+    marginBottom: T.sp8,
   },
 
   modalMessage: {
-    marginTop: 8,
-    color: colors.textSub,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    color: T.textMuted,
     textAlign: "center",
+    lineHeight: 19,
+    marginBottom: T.sp20,
   },
 
   modalButton: {
-    marginTop: 20,
     width: "100%",
+    height: T.buttonH,
+    borderRadius: T.radiusMd,
     backgroundColor: colors.primary,
-    borderRadius: 50,
-    paddingVertical: 14,
     alignItems: "center",
+    justifyContent: "center",
   },
 
   modalButtonText: {
-    color: "#fff",
-    fontWeight: "800",
+    color: "#FFFFFF",
     fontSize: 15,
-  },
-
-  biometricLoginButton: {
-    marginHorizontal: 24,
-    marginBottom: 20,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    alignItems: "center",
-  },
-
-  biometricLoginText: {
-    color: colors.primary,
     fontWeight: "700",
-    fontSize: 15,
   },
 
+  /* 2FA Flow */
   twoFactorScrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingVertical: 40,
-  },
-
-  twoFactorContainer: {
-    width: "100%",
+    paddingHorizontal: T.sp24,
+    paddingTop: Platform.OS === "ios" ? 72 : 56,
+    paddingBottom: T.sp40,
   },
 
   twoFactorCard: {
-    marginHorizontal: 24,
-    backgroundColor: "#F8F9FC",
+    backgroundColor: T.surface,
+    borderRadius: T.radiusLg,
     borderWidth: 1,
-    borderColor: colors.greyLine,
-    borderRadius: 24,
-    padding: 22,
+    borderColor: T.border,
+    padding: T.sp20,
   },
 
   securityIconCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ECFDF5",
-    marginBottom: 16,
+    backgroundColor: "#F3E8FF",
+    marginBottom: T.sp16,
   },
 
   securityIcon: {
     color: colors.primary,
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "900",
   },
 
   twoFactorTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "800",
-    color: colors.navy,
+    color: colors.navy ?? T.textPrimary,
     textAlign: "center",
+    marginBottom: T.sp8,
   },
 
   twoFactorSubtitle: {
-    marginTop: 10,
-    marginBottom: 24,
-    color: colors.textSub,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    color: T.textMuted,
+    lineHeight: 19,
     textAlign: "center",
-  },
-
-  twoFactorLabel: {
-    fontSize: 14,
-    color: colors.textSub,
-    marginBottom: 8,
-  },
-
-  twoFactorInput: {
-    borderWidth: 1.5,
-    borderColor: colors.greyLine,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    fontSize: 24,
-    fontWeight: "700",
-    letterSpacing: 10,
-    textAlign: "center",
-    backgroundColor: "#fff",
-  },
-
-  twoFactorError: {
-    color: "#DC2626",
-    fontSize: 12,
-    fontWeight: "600",
-    lineHeight: 18,
-    marginTop: 8,
-  },
-
-  backButton: {
-    alignItems: "center",
-    marginTop: 20,
-    paddingVertical: 8,
-  },
-
-  backButtonText: {
-    color: colors.gradientEnd,
-    fontSize: 14,
-    fontWeight: "700",
-    textDecorationLine: "underline",
+    marginBottom: T.sp20,
   },
 
   setupStep: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 18,
+    marginBottom: T.sp16,
   },
 
   stepNumber: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: T.sp12,
+    marginTop: 2,
   },
 
   stepNumberText: {
-    color: "#fff",
-    fontSize: 14,
+    color: "#FFFFFF",
+    fontSize: 13,
     fontWeight: "800",
   },
 
@@ -1516,48 +1493,74 @@ const styles = StyleSheet.create({
   },
 
   stepTitle: {
-    color: colors.navy,
-    fontSize: 15,
-    fontWeight: "800",
-    marginBottom: 4,
+    color: colors.navy ?? T.textPrimary,
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: T.sp4,
   },
 
   stepDescription: {
-    color: colors.textSub,
-    fontSize: 13,
-    lineHeight: 19,
+    color: T.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
   },
 
   manualKeyContainer: {
-    backgroundColor: "#fff",
-    borderWidth: 1.5,
-    borderColor: colors.greyLine,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+    backgroundColor: T.surfaceMuted,
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: T.radiusMd,
+    padding: T.sp12,
+    marginVertical: T.sp12,
   },
 
   manualKeyLabel: {
-    color: colors.textSub,
-    fontSize: 12,
+    color: T.textMuted,
+    fontSize: 11,
     fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: T.sp4,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
 
   manualKey: {
-    color: colors.navy,
-    fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: 2,
-    lineHeight: 26,
+    color: colors.navy ?? T.textPrimary,
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
   },
 
   manualKeyWarning: {
-    color: colors.textSub,
+    color: T.textMuted,
     fontSize: 11,
-    lineHeight: 17,
-    marginTop: 10,
+    lineHeight: 15,
+    marginTop: T.sp8,
+  },
+
+  twoFactorInput: {
+    height: T.inputH,
+    borderRadius: T.radiusMd,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: 8,
+    textAlign: "center",
+    backgroundColor: T.surface,
+    color: T.textPrimary,
+    marginBottom: T.sp8,
+  },
+
+  backButton: {
+    alignItems: "center",
+    marginTop: T.sp16,
+    paddingVertical: T.sp8,
+  },
+
+  backButtonText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
