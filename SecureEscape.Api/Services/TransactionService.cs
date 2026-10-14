@@ -18,6 +18,7 @@ public class TransactionService : ITransactionService
     private readonly IRiskEvaluationRepository _riskEvaluationRepository;
     private readonly IRiskService _riskService;
     private readonly IFraudReportingService _fraudReportingService;
+    private readonly DuressBudgetService _duressBudgetService;
     private readonly IUnitOfWork _unitOfWork;
 
     public TransactionService(
@@ -31,6 +32,7 @@ public class TransactionService : ITransactionService
         IRiskEvaluationRepository riskEvaluationRepository,
         IRiskService riskService,
         IFraudReportingService fraudReportingService,
+        DuressBudgetService duressBudgetService,
         IUnitOfWork unitOfWork)
     {
         _transactionRepository = transactionRepository;
@@ -43,6 +45,7 @@ public class TransactionService : ITransactionService
         _riskEvaluationRepository = riskEvaluationRepository;
         _riskService = riskService;
         _fraudReportingService = fraudReportingService;
+        _duressBudgetService = duressBudgetService;
         _unitOfWork = unitOfWork;
     }
 
@@ -53,6 +56,9 @@ public class TransactionService : ITransactionService
         var transactions =
             await _transactionRepository.GetByUserIdAsync(
                 currentUser.UserId);
+
+        if (currentUser.SessionMode == SessionMode.Duress)
+            transactions = transactions.Where(t => t.UserSessionId == currentUser.UserSessionId).ToList();
 
         return transactions.Select(MapToResponse).ToList();
     }
@@ -296,7 +302,8 @@ public class TransactionService : ITransactionService
                 string.Empty,
             Amount = bankTransaction.Amount,
             Currency = bankTransaction.Currency,
-            Status = bankTransaction.Status,
+            Status = bankTransaction.Status == TransactionStatus.DecoyApproved ? TransactionStatus.Approved : bankTransaction.Status,
+            StatusReason = bankTransaction.StatusReason,
             VoucherExpiresAt =
                 bankTransaction.VoucherExpiresAt ??
                 now,
@@ -421,86 +428,7 @@ public class TransactionService : ITransactionService
         transaction.RiskScore =
             riskAssessment.Score;
 
-        if (decoyProfile == null)
-        {
-            if (transaction.Amount <=
-                account.AvailableBalance)
-            {
-                account.AvailableBalance -=
-                    transaction.Amount;
-
-                account.CurrentBalance -=
-                    transaction.Amount;
-
-                account.UpdatedAt =
-                    DateTime.UtcNow;
-
-                await _bankAccountRepository
-                    .UpdateAsync(account);
-
-                transaction.Status =
-                    TransactionStatus.Approved;
-
-                transaction.SecureEscapeCode =
-                    $"SE-{userSessionId:N}-{DateTime.UtcNow:yyyyMMddHHmmss}";
-            }
-            else
-            {
-                transaction.Status =
-                    TransactionStatus.Failed;
-
-                transaction.StatusReason =
-                    "Insufficient funds.";
-            }
-        }
-        else if (decoyProfile.IsActive)
-        {
-            var decoyCeiling = Math.Min(
-                decoyProfile.EmergencyBudget,
-                account.AvailableBalance);
-
-            if (transaction.Amount <=
-                decoyCeiling)
-            {
-                account.AvailableBalance -=
-                    transaction.Amount;
-
-                account.CurrentBalance -=
-                    transaction.Amount;
-
-                decoyProfile.EmergencyBudget -=
-                    transaction.Amount;
-
-                decoyProfile.DisplayBalance -=
-                    transaction.Amount;
-
-                account.UpdatedAt =
-                    DateTime.UtcNow;
-
-                decoyProfile.UpdatedAt =
-                    DateTime.UtcNow;
-
-                await _bankAccountRepository
-                    .UpdateAsync(account);
-
-                await _decoyProfileRepository
-                    .UpdateAsync(decoyProfile);
-
-                transaction.Status =
-                    TransactionStatus.DecoyApproved;
-
-                transaction.SecureEscapeCode =
-                    $"SE-{userSessionId:N}-{DateTime.UtcNow:yyyyMMddHHmmss}";
-            }
-            else
-            {
-                transaction.Status =
-                    TransactionStatus.Failed;
-
-                transaction.StatusReason =
-                    "Insufficient funds.";
-            }
-        }
+        await _duressBudgetService.ApplyAsync(transaction, account);
 
         var fraudReportResult =
             await _fraudReportingService

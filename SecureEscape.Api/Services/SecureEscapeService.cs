@@ -407,7 +407,6 @@ public class SecureEscapeService : ISecureEscapeService
 
         public bool HasAllRequiredComponents =>
             HasDecoyProfile &&
-            HasDuressPin &&
-            HasEmergencyContact;
+            HasDuressPin;
     }
 }

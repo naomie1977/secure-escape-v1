@@ -59,6 +59,7 @@ export type CashSendResponse = {
   amount: number;
   currency: string;
   status: TransactionStatus;
+  statusReason?: string | null;
   voucherExpiresAt: string;
   voucherRedeemed: boolean;
   createdAt: string;

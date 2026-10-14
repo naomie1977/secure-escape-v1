@@ -167,7 +167,7 @@ export default function CreateCashSend() {
 
   const handlePinChange = (value: string) => {
     setVoucherPin(
-      value.replace(/\D/g, "").slice(0, 6)
+      value.replace(/\D/g, "").slice(0, 4)
     );
 
     clearError();
@@ -226,9 +226,9 @@ export default function CreateCashSend() {
       return;
     }
 
-    if (voucherPin.length < 4 || voucherPin.length > 6) {
+    if (!/^\d{4}$/.test(voucherPin.trim())) {
       showError(
-        "Cash send PIN must be 4 to 6 digits."
+        "Cash send PIN must be exactly 4 digits."
       );
       return;
     }
@@ -570,7 +570,7 @@ export default function CreateCashSend() {
           {/* VOUCHER PIN */}
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>
-              Cash Send PIN (4-6 digits)
+              Cash Send PIN (4 digits)
               <Text style={styles.required}> *</Text>
             </Text>
 
@@ -601,15 +601,15 @@ export default function CreateCashSend() {
                 }
                 keyboardType="number-pad"
                 secureTextEntry
-                maxLength={6}
-                placeholder="Enter 4 to 6 digit PIN"
+                maxLength={4}
+                placeholder="Enter 4-digit PIN"
                 placeholderTextColor={colors.textLight}
-                accessibilityLabel="Four to six digit cash send PIN"
+                accessibilityLabel="Four digit cash send PIN"
               />
             </View>
 
             <Text style={styles.fieldHint}>
-              Choose a secure PIN that the recipient will use to withdraw.
+              Choose a four-digit PIN that the recipient will use to withdraw.
             </Text>
           </View>
 
@@ -751,7 +751,10 @@ export default function CreateCashSend() {
           },
           {
             label: "Status",
-            value: createdCashSend?.status,
+            value:
+              createdCashSend?.status === "DecoyApproved"
+                ? "Approved"
+                : createdCashSend?.status,
           },
         ]}
         primaryLabel="Done"
@@ -773,11 +776,10 @@ export default function CreateCashSend() {
             <View style={styles.modalIconCircle}>
               <Ionicons name="shield-checkmark-outline" size={29} color="#A86E00" />
             </View>
-            <Text style={styles.modalTitle}>Security Verification</Text>
+            <Text style={styles.modalTitle}>Verification Required</Text>
             <Text style={styles.modalMessage}>
-              For your security, this cash send requires an additional banking
-              verification. The request has been placed on hold while the
-              verification is completed. No funds have been released.
+              {createdCashSend?.statusReason ||
+                "For your security, this transaction requires additional verification. Please wait while we confirm the details. This may take a few minutes."}
             </Text>
             <TouchableOpacity
               style={styles.modalButton}

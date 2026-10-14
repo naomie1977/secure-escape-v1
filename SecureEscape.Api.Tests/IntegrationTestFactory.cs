@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SecureEscape.Api.Data;
 
@@ -14,6 +15,18 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:SigningKey"] = "SuperSecretSecureEscapeIntegrationTestingKey12345!",
+                ["Jwt:Issuer"] = "https://secureescape.test",
+                ["Jwt:Audience"] = "https://secureescape.test",
+                ["Jwt:TokenExpirationInHours"] = "24",
+                ["ConnectionStrings:default"] = "Server=localhost;Database=test;"
+            });
+        });
 
         builder.ConfigureServices(services =>
         {

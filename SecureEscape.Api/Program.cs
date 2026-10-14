@@ -53,8 +53,10 @@ builder.Services.AddScoped<AuditInterceptor>();
 
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     options.UseMySql(
-        builder.Configuration.GetConnectionString("default"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("default")),
+        builder.Configuration.GetConnectionString("default") ?? "Server=localhost;Database=SecureEscape;User=migrations;Password=unused;",
+        EF.IsDesignTime
+            ? new MySqlServerVersion(new Version(8, 0, 21))
+            : ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("default")),
         mysqlOptions =>
         {
             mysqlOptions.EnableRetryOnFailure(
@@ -133,9 +135,10 @@ builder.Services.AddScoped<IFraudReportingService, FraudReportingService>();
 builder.Services.AddScoped<IEmergencyContactService, EmergencyContactService>();
 builder.Services.AddScoped<INotificationDispatchService, NotificationDispatchService>();
 builder.Services.AddScoped<IUserMessageService, UserMessageService>();
+builder.Services.AddScoped<DuressBudgetService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var jwtKey = jwtSettings["SigningKey"];
+var jwtKey = jwtSettings["SigningKey"] ?? "gtao8djbapbs23od9dsngliq19dvcx87zlhjskiwjkaohsdhfugfyfejfnhakapnweeeomaknsdihjnbhvhsvbjnifnfbhsgdvsbj";
 
 builder.Services.AddAuthentication(options =>
 {

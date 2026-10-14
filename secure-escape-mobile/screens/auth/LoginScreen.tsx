@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import {
   setupTwoFactorLogin,
   verifyTwoFactorLogin,
 } from "@/services/authService";
-import { saveAuthSession } from "@/services/tokenStore";
+import { getLastLoginEmail, saveAuthSession, setLastLoginEmail } from "@/services/tokenStore";
 import * as Location from "expo-location";
 import Constants from "expo-constants";
 import {
@@ -98,6 +98,16 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     };
 
     checkBiometrics();
+
+    getLastLoginEmail()
+      .then((lastEmail) => {
+        if (lastEmail) {
+          setEmail(lastEmail);
+        }
+      })
+      .catch((error) => {
+        console.warn("[LOGIN] Failed to load remembered email:", error);
+      });
   }, []);
 
   const showError = (message: string) => {
@@ -273,6 +283,17 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
     console.log("[LOGIN] Calling login success navigation");
 
+    if (email.trim()) {
+      try {
+        await setLastLoginEmail(email.trim());
+      } catch (saveEmailError) {
+        console.warn("[LOGIN] Failed to save login email:", saveEmailError);
+      }
+    }
+
+    setFailedAttempts(0);
+    setLoginLocked(false);
+
     onLoginSuccess?.();
 
     console.log("[LOGIN] Login flow completed");
@@ -302,6 +323,8 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   };
 
   const handleSubmit = async () => {
+    if (loginLocked) return;
+
     console.log("[LOGIN] Submit pressed");
 
     const validationMessage = getValidationMessage();
@@ -351,6 +374,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
         console.log("[LOGIN] First-time authenticator setup required");
 
+        setFailedAttempts(0);
         await startFirstTimeTwoFactorSetup(
           response.twoFactorSetupChallengeToken,
         );
@@ -367,6 +391,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
         console.log("[LOGIN] Authenticator verification required");
 
+        setFailedAttempts(0);
         setTwoFactorChallengeToken(response.twoFactorChallengeToken);
         setTwoFactorCode("");
         setRequiresTwoFactorSetup(false);
@@ -380,8 +405,30 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       console.error("[LOGIN] FAILED:", error);
 
       const friendlyMessage = getFriendlyErrorMessage(error);
+      const message = error instanceof Error ? error.message : String(error ?? "");
+      const lower = message.toLowerCase();
+      const isInvalidCredentials =
+        lower.includes("invalid") ||
+        lower.includes("credentials") ||
+        lower.includes("incorrect") ||
+        lower.includes("unauthorized") ||
+        lower.includes("401");
 
-      showError(friendlyMessage);
+      if (isInvalidCredentials) {
+        const nextAttempt = failedAttempts + 1;
+        setFailedAttempts(nextAttempt);
+
+        if (nextAttempt >= 3) {
+          setLoginLocked(true);
+          showError(
+            "For your security, sign-in has been temporarily locked after three unsuccessful attempts. Please contact your bank for assistance."
+          );
+        } else {
+          showError(friendlyMessage);
+        }
+      } else {
+        showError(friendlyMessage);
+      }
     } finally {
       console.log("[LOGIN] Submit flow finished");
       setIsSubmitting(false);

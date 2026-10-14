@@ -664,6 +664,36 @@ export default function OnceOffTransfer() {
         subtitle="Enter your PIN to send this transfer"
       />
 
+      {/* PENDING TRANSACTION MODAL */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={createdTransaction?.status === "Pending"}
+        onRequestClose={() => undefined}
+      >
+        <View style={styles.centerModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <View style={[styles.confirmIconContainer, { backgroundColor: "#FEF3C7" }]}>
+              <Ionicons name="time-outline" size={34} color="#D97706" />
+            </View>
+
+            <Text style={styles.confirmTitle}>Verification Required</Text>
+            <Text style={styles.confirmMessage}>
+              {createdTransaction?.statusReason ||
+                "For your security, this transaction requires additional verification. Please wait while we confirm the details. This may take a few minutes."}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.confirmSubmitButton}
+              onPress={() => router.replace("/(tabs)")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.confirmSubmitText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Error Modal */}
       <Modal
         transparent

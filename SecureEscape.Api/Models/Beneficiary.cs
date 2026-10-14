@@ -37,6 +37,7 @@ namespace SecureEscape.Api.Models
 
         public DateTime? UpdatedAt { get; set; }
         public DateTime? LastPaidAt { get; set; }
+        public bool CreatedUnderDuress { get; set; }
 
         public User? User { get; set; }
 

@@ -12,7 +12,8 @@ public class CreateCashSendRequestDto
     public decimal Amount { get; set; }
 
     [Required]
-    [StringLength(6, MinimumLength = 4)]
+    [StringLength(4, MinimumLength = 4, ErrorMessage = "Voucher PIN must be exactly 4 digits.")]
+    [RegularExpression(@"^\d{4}$", ErrorMessage = "Voucher PIN must contain exactly 4 numeric digits.")]
     public string VoucherPin { get; set; } = string.Empty;
 
     [MaxLength(500)]

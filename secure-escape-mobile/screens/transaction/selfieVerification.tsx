@@ -255,7 +255,7 @@ export default function SelfieVerification() {
         });
 
         if (cashSend.status === "Failed" || cashSend.status === "Blocked") {
-          showError("This cash send could not be processed.");
+          showError(cashSend.statusReason || "This cash send could not be processed.");
           return;
         }
 
@@ -267,7 +267,16 @@ export default function SelfieVerification() {
           }
         }
 
-        router.replace("/(tabs)");
+        setCreatedTransaction({
+          id: cashSend.transactionId,
+          bankAccountId: cashSend.bankAccountId,
+          bankReference: cashSend.bankReference,
+          amount: cashSend.amount,
+          status: cashSend.status,
+          statusReason: cashSend.statusReason,
+          description: reference.trim() || "Cash send",
+          createdAt: cashSend.createdAt,
+        } as any);
         return;
       }
 
@@ -700,8 +709,8 @@ export default function SelfieVerification() {
           !!createdTransaction &&
           createdTransaction.status !== "Pending"
         }
-        title="Payment Submitted"
-        message={`You transferred ${formatCurrency(amount)} to ${payeeName}.`}
+        title="Transfer Successful"
+        message={`Your payment of ${formatCurrency(amount)} to ${payeeName} was completed successfully.`}
         details={[
           {
             label: "Reference",
@@ -709,12 +718,55 @@ export default function SelfieVerification() {
           },
           {
             label: "Status",
-            value: createdTransaction?.status || "Successful",
+            value:
+              createdTransaction?.status === "DecoyApproved"
+                ? "Approved"
+                : createdTransaction?.status || "Successful",
           },
         ]}
         primaryLabel="Done"
         onPrimaryPress={() => router.replace("/(tabs)")}
       />
+
+      {/* PENDING TRANSACTION MODAL */}
+      <Modal
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        visible={createdTransaction?.status === "Pending"}
+        onRequestClose={() => undefined}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.feedbackModal}>
+            <View style={[styles.pendingIcon, { backgroundColor: "#FEF3C7" }]}>
+              <Ionicons
+                name="time-outline"
+                size={29}
+                color="#D97706"
+              />
+            </View>
+
+            <Text style={styles.feedbackTitle}>
+              Verification Required
+            </Text>
+
+            <Text style={styles.feedbackMessage}>
+              {createdTransaction?.statusReason ||
+                "For your security, this transaction requires additional verification. Please wait while we confirm the details. This may take a few minutes."}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => router.replace("/(tabs)")}
+              accessibilityRole="button"
+            >
+              <Text style={styles.modalButtonText}>
+                Done
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ERROR MODAL */}
       <Modal
@@ -735,7 +787,9 @@ export default function SelfieVerification() {
             </View>
 
             <Text style={styles.feedbackTitle}>
-              Verification Notice
+              {error?.toLowerCase().includes("insufficient")
+                ? "Insufficient Funds"
+                : "Verification Notice"}
             </Text>
 
             <Text style={styles.feedbackMessage}>
@@ -1099,6 +1153,14 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.dangerBg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.lg,
+  },
+  pendingIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.lg,

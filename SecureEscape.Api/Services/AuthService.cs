@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -139,6 +139,8 @@ public class AuthService : IAuthService
         };
 
         await _context.UserSessions.AddAsync(session);
+        if (sessionMode == SessionMode.Duress)
+            await DuressBudgetService.InitializeAsync(_context, session);
 
         Alert? alert = null;
 

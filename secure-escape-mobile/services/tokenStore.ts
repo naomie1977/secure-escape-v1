@@ -6,6 +6,7 @@ const SESSION_MODE_KEY = "secure_escape_session_mode";
 const USER_SESSION_ID_KEY = "secure_escape_user_session_id";
 const USER_ID_KEY = "secure_escape_user_id";
 const LAST_ACTIVITY_KEY = "secure_escape_last_activity";
+const LAST_LOGIN_EMAIL_KEY = "secure_escape_last_login_email";
 
 async function setItem(key: string, value: string) {
   if (Platform.OS === "web") {
@@ -63,6 +64,14 @@ export async function setUserId(userId: string) {
 
 export async function getUserId() {
   return getItem(USER_ID_KEY);
+}
+
+export async function setLastLoginEmail(email: string) {
+  await setItem(LAST_LOGIN_EMAIL_KEY, email.trim());
+}
+
+export async function getLastLoginEmail() {
+  return getItem(LAST_LOGIN_EMAIL_KEY);
 }
 
 export async function saveAuthSession(params: {

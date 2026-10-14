@@ -49,6 +49,7 @@ public class BeneficiaryService : IBeneficiaryService
             AccountNumber = request.AccountNumber,
             Reference = request.Reference,
             Status = BeneficiaryStatus.Active,
+            CreatedUnderDuress = currentUser.SessionMode == SessionMode.Duress,
             CreatedAt = DateTime.UtcNow
         };
 

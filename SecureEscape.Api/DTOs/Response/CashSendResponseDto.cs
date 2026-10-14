@@ -17,6 +17,7 @@ public class CashSendResponseDto
     public string Currency { get; set; } = "ZAR";
 
     public TransactionStatus Status { get; set; }
+    public string? StatusReason { get; set; }
 
     public DateTime VoucherExpiresAt { get; set; }
 

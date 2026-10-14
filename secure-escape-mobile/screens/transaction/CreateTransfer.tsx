@@ -848,10 +848,10 @@ export default function CreateTransfer() {
               <Ionicons name="time-outline" size={28} color="#D97706" />
             </View>
 
-            <Text style={styles.confirmTitle}>Security verification</Text>
+            <Text style={styles.confirmTitle}>Verification Required</Text>
             <Text style={styles.confirmDescription}>
-              For your security, this payment is pending additional verification.
-              You can track its status in your transaction history.
+              {createdTransaction?.statusReason ||
+                "For your security, this transaction requires additional verification. Please wait while we confirm the details. This may take a few minutes."}
             </Text>
 
             <TouchableOpacity
@@ -869,10 +869,10 @@ export default function CreateTransfer() {
         visible={
           !!createdTransaction && createdTransaction.status !== "Pending"
         }
-        title="Payment complete"
-        message={`You paid ${formatCurrency(
+        title="Transfer Successful"
+        message={`Your payment of ${formatCurrency(
           Number(amount) || 0,
-        )} to ${displayBeneficiaryName || "your beneficiary"}.`}
+        )} to ${displayBeneficiaryName || "your beneficiary"} was completed successfully.`}
         primaryLabel="Done"
         onPrimaryPress={() => router.replace("/(tabs)")}
       />

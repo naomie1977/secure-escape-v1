@@ -10,15 +10,18 @@ public class AccountService : IAccountService
     private readonly IBankAccountRepository _bankAccountRepository;
     private readonly IDecoyProfileRepository _decoyProfileRepository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly DuressBudgetService _duressBudgetService;
 
     public AccountService(
         IBankAccountRepository bankAccountRepository,
         IDecoyProfileRepository decoyProfileRepository,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        DuressBudgetService duressBudgetService)
     {
         _bankAccountRepository = bankAccountRepository;
         _decoyProfileRepository = decoyProfileRepository;
         _currentUserService = currentUserService;
+        _duressBudgetService = duressBudgetService;
     }
 
     public async Task<List<AccountResponseDto>> GetCurrentUserAccountsAsync()
@@ -27,12 +30,12 @@ public class AccountService : IAccountService
 
         var accounts = await _bankAccountRepository.GetByUserIdAsync(currentUser.UserId);
 
-        var decoyProfile = currentUser.SessionMode == SessionMode.Duress
-            ? await _decoyProfileRepository.GetActiveByUserIdAsync(currentUser.UserId)
+        var budget = currentUser.SessionMode == SessionMode.Duress
+            ? await _duressBudgetService.GetAsync(currentUser.UserSessionId)
             : null;
 
         return accounts
-            .Select((account, index) => MapToResponse(account, decoyProfile, index, currentUser.SessionMode))
+            .Select(account => MapToResponse(account, budget, currentUser.SessionMode))
             .ToList();
     }
 
@@ -49,39 +52,30 @@ public class AccountService : IAccountService
             return null;
         }
 
-        var decoyProfile = currentUser.SessionMode == SessionMode.Duress
-            ? await _decoyProfileRepository.GetActiveByUserIdAsync(currentUser.UserId)
+        var budget = currentUser.SessionMode == SessionMode.Duress
+            ? await _duressBudgetService.GetAsync(currentUser.UserSessionId)
             : null;
 
-        return MapToResponse(account, decoyProfile, 0, currentUser.SessionMode);
+        return MapToResponse(account, budget, currentUser.SessionMode);
     }
 
     private static AccountResponseDto MapToResponse(
         BankAccount account,
-        DecoyProfile? decoyProfile,
-        int index,
+        DuressBudget? budget,
         SessionMode sessionMode)
     {
         var isDuress = sessionMode == SessionMode.Duress;
-        var isDecoyView = isDuress && decoyProfile != null;
+        var isDecoyView = isDuress;
 
         var availableBalance = account.AvailableBalance;
         var currentBalance = account.CurrentBalance;
 
         if (isDecoyView)
         {
-            var decoyAvailableBalance = Math.Max(
-                0,
-                Math.Min(decoyProfile!.EmergencyBudget, account.AvailableBalance)
-            );
-
-            availableBalance = index == 0
-                ? decoyAvailableBalance
+            availableBalance = budget?.BankAccountId == account.Id
+                ? Math.Max(0, budget.RemainingBalance)
                 : 0;
-
-            currentBalance = index == 0
-                ? decoyAvailableBalance
-                : 0;
+            currentBalance = availableBalance;
         }
 
         return new AccountResponseDto

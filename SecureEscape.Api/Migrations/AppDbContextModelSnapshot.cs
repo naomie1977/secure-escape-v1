@@ -314,6 +314,7 @@ namespace SecureEscape.Api.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<decimal>("AvailableBalance")
+                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -328,6 +329,7 @@ namespace SecureEscape.Api.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("varchar(30)");
@@ -464,6 +466,7 @@ namespace SecureEscape.Api.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasColumnType("longtext");
 
@@ -531,6 +534,9 @@ namespace SecureEscape.Api.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("CreatedUnderDuress")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime?>("LastPaidAt")
                         .HasColumnType("datetime(6)");
@@ -654,6 +660,42 @@ namespace SecureEscape.Api.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("DecoyProfiles");
+                });
+
+            modelBuilder.Entity("SecureEscape.Api.Models.DuressBudget", b =>
+                {
+                    b.Property<Guid>("UserSessionId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ExistingBeneficiaryIdsJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("OriginalBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("OriginalSpendingLimit")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PendingThresholdRate")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal>("RemainingBalance")
+                        .IsConcurrencyToken()
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("RemainingSpendingLimit")
+                        .IsConcurrencyToken()
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("UserSessionId");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.ToTable("DuressBudgets");
                 });
 
             modelBuilder.Entity("SecureEscape.Api.Models.EmergencyContact", b =>
@@ -1409,6 +1451,20 @@ namespace SecureEscape.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SecureEscape.Api.Models.DuressBudget", b =>
+                {
+                    b.HasOne("SecureEscape.Api.Models.BankAccount", null)
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SecureEscape.Api.Models.UserSession", null)
+                        .WithOne()
+                        .HasForeignKey("SecureEscape.Api.Models.DuressBudget", "UserSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SecureEscape.Api.Models.EmergencyContact", b =>

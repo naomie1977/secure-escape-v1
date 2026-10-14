@@ -42,6 +42,17 @@ const RED = "#C23B49";
 
 const MAX_CONTACTS = 5;
 
+const RELATIONSHIP_OPTIONS = [
+  "Mother",
+  "Father",
+  "Sibling",
+  "Spouse",
+  "Partner",
+  "Friend",
+  "Guardian",
+  "Other",
+];
+
 type LocalContact = {
   id: string;
   name: string;
@@ -111,6 +122,10 @@ export default function EmergencyContact() {
     useState(false);
   const [infoModalVisible, setInfoModalVisible] =
     useState(false);
+  const [
+    relationshipModalContactId,
+    setRelationshipModalContactId,
+  ] = useState<string | null>(null);
 
   // Prevent repeated submissions and duplicate saves
   // if a request fails partway through multiple contacts.
@@ -853,20 +868,58 @@ export default function EmergencyContact() {
                       autoCapitalize="none"
                     />
 
-                    <ContactField
-                      label="Relationship"
-                      placeholder="e.g. Mother, Friend"
-                      value={contact.relationship}
-                      onChangeText={(text) =>
-                        updateContact(
-                          contact.id,
-                          "relationship",
-                          text
-                        )
-                      }
-                      editable={!isBusy}
-                      maxLength={50}
-                    />
+                    {(() => {
+                      const isKnown = RELATIONSHIP_OPTIONS.includes(contact.relationship);
+                      const isOther = contact.relationship === "Other" || (!isKnown && contact.relationship.trim().length > 0);
+                      const displayRel = isKnown ? contact.relationship : (isOther ? "Other" : "");
+
+                      return (
+                        <>
+                          <View style={styles.field}>
+                            <Text style={styles.fieldLabel}>Relationship</Text>
+                            <TouchableOpacity
+                              style={styles.pickerTrigger}
+                              onPress={() => setRelationshipModalContactId(contact.id)}
+                              disabled={isBusy}
+                              activeOpacity={0.7}
+                              accessibilityRole="button"
+                              accessibilityLabel="Select relationship"
+                            >
+                              <Text
+                                style={[
+                                  styles.pickerTriggerText,
+                                  !displayRel && styles.pickerTriggerPlaceholder,
+                                ]}
+                              >
+                                {displayRel || "Select relationship"}
+                              </Text>
+                              <Ionicons
+                                name="chevron-down"
+                                size={18}
+                                color={PURPLE}
+                              />
+                            </TouchableOpacity>
+                          </View>
+
+                          {isOther && (
+                            <ContactField
+                              label="Custom Relationship"
+                              placeholder="e.g. Mentor, Colleague"
+                              value={isKnown ? "" : contact.relationship}
+                              onChangeText={(text) =>
+                                updateContact(
+                                  contact.id,
+                                  "relationship",
+                                  text
+                                )
+                              }
+                              editable={!isBusy}
+                              maxLength={50}
+                            />
+                          )}
+                        </>
+                      );
+                    })()}
 
                     <TouchableOpacity
                       style={styles.primaryRow}
@@ -1113,6 +1166,90 @@ export default function EmergencyContact() {
                   Got it
                 </Text>
               </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* RELATIONSHIP SELECTION MODAL */}
+      <Modal
+        visible={!!relationshipModalContactId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRelationshipModalContactId(null)}
+      >
+        <View style={styles.relationshipModalOverlay}>
+          <View style={styles.relationshipModalCard}>
+            <View style={styles.relationshipModalHeader}>
+              <Text style={styles.relationshipModalTitle}>
+                Select Relationship
+              </Text>
+              <TouchableOpacity
+                onPress={() => setRelationshipModalContactId(null)}
+                style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close relationship picker"
+              >
+                <Ionicons name="close" size={20} color={colors.navy} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={{ maxHeight: 340 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {RELATIONSHIP_OPTIONS.map((option) => {
+                const activeContact = contacts.find(
+                  (c) => c.id === relationshipModalContactId
+                );
+                const isSelected =
+                  activeContact?.relationship === option ||
+                  (option === "Other" &&
+                    activeContact?.relationship &&
+                    !RELATIONSHIP_OPTIONS.slice(0, -1).includes(
+                      activeContact.relationship
+                    ));
+
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.relationshipOption,
+                      isSelected && styles.relationshipOptionSelected,
+                    ]}
+                    onPress={() => {
+                      if (relationshipModalContactId) {
+                        updateContact(
+                          relationshipModalContactId,
+                          "relationship",
+                          option === "Other"
+                            ? isSelected
+                              ? activeContact?.relationship || "Other"
+                              : "Other"
+                            : option
+                        );
+                      }
+                      setRelationshipModalContactId(null);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.relationshipOptionText,
+                        isSelected && styles.relationshipOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={18}
+                        color={PURPLE}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>
@@ -1688,5 +1825,89 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: WHITE,
+  },
+
+  // RELATIONSHIP PICKER & MODAL
+
+  pickerTrigger: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: 10,
+    backgroundColor: BACKGROUND,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  pickerTriggerText: {
+    fontSize: 13,
+    color: colors.navy,
+  },
+
+  pickerTriggerPlaceholder: {
+    color: "#A09EAE",
+  },
+
+  relationshipModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.52)",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+
+  relationshipModalCard: {
+    backgroundColor: WHITE,
+    borderRadius: 18,
+    padding: 20,
+    maxHeight: 450,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  relationshipModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: LINE,
+  },
+
+  relationshipModalTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.navy,
+  },
+
+  relationshipOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 4,
+  },
+
+  relationshipOptionSelected: {
+    backgroundColor: PALE_PURPLE,
+  },
+
+  relationshipOptionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.navy,
+  },
+
+  relationshipOptionTextSelected: {
+    color: PURPLE,
+    fontWeight: "700",
   },
 });
