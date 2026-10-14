@@ -50,6 +50,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      const splashStartedAt = Date.now();
+
       try {
         const token = await getAuthToken();
         const expired = await isSessionExpired();
@@ -72,6 +74,15 @@ export default function RootLayout() {
       } catch (error) {
         console.log("Authentication error:", error);
       } finally {
+        // Keep the branded startup experience visible long enough to feel intentional.
+        const minimumSplashDuration = 2200;
+        const elapsed = Date.now() - splashStartedAt;
+        const remaining = Math.max(0, minimumSplashDuration - elapsed);
+
+        if (remaining > 0) {
+          await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+        }
+
         setIsLoading(false);
       }
     };

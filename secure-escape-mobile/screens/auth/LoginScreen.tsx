@@ -690,7 +690,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
           <View style={styles.twoFactorCard}>
             <View style={styles.securityIconCircle}>
-              <Text style={styles.securityIcon}>âœ“</Text>
+              
             </View>
 
             <Text style={styles.twoFactorTitle}>Set up Authenticator</Text>
@@ -835,7 +835,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
           <View style={styles.twoFactorCard}>
             <View style={styles.securityIconCircle}>
-              <Text style={styles.securityIcon}>âœ“</Text>
+              
             </View>
 
             <Text style={styles.twoFactorTitle}>
@@ -968,7 +968,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           value={pin}
           onChangeText={handlePinChange}
           onBlur={handlePinBlur}
-          placeholder="â€¢ â€¢ â€¢ â€¢"
+          placeholder="• • • •"
           placeholderTextColor="#ccc"
         />
 
@@ -1038,7 +1038,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               dontShowAgain && styles.checkboxChecked,
             ]}
           >
-            {dontShowAgain && <Text style={styles.checkmark}>âœ“</Text>}
+            {dontShowAgain && <Text style={styles.checkmark}>{"\u2713"}</Text>}
           </View>
 
           <Text style={styles.dontShowText}>
@@ -1561,3 +1561,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
+
+
+

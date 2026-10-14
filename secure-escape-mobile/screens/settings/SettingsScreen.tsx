@@ -17,7 +17,6 @@ import { logout } from "@/services/authService";
 import { uploadScreenRecordingEvidence } from "@/services/transactionServices";
 import {
   clearCompletedScreenRecording,
-  isScreenRecording,
   stopScreenRecording,
 } from "@/modules/secure-escape-screen-recorder/src/SecureEscapeScreenRecorder";
 
@@ -36,22 +35,18 @@ export default function SettingsScreen() {
     setError("");
 
     try {
-      const recordingActive = await isScreenRecording();
+      try {
+        const recording = await stopScreenRecording();
 
-      if (recordingActive) {
-        try {
-          const recording = await stopScreenRecording();
-
-          if (recording.stopped && recording.uri) {
-            await uploadScreenRecordingEvidence(recording.uri);
-            clearCompletedScreenRecording();
-          }
-        } catch (evidenceError) {
-          console.error(
-            "Failed to finalize or upload screen-recording evidence:",
-            evidenceError,
-          );
+        if (recording.stopped && recording.uri) {
+          await uploadScreenRecordingEvidence(recording.uri);
+          clearCompletedScreenRecording();
         }
+      } catch (evidenceError) {
+        console.error(
+          "Failed to finalize or upload screen-recording evidence:",
+          evidenceError,
+        );
       }
 
       await logout();
@@ -289,3 +284,4 @@ const styles = StyleSheet.create({
     color: colors.textSub,
   },
 });
+
