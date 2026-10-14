@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from "react";
 import {
   FlatList,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -255,54 +255,61 @@ export default function ScreenCashHistory() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={["#5B8DEF", "#6C63FF"]}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
+      {/* Deep Purple Header */}
+      <View style={styles.topPurpleCard}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={22}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>History</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerEyebrow}>TRANSACTIONS</Text>
+            <Text style={styles.headerTitle}>Cash Send History</Text>
+          </View>
 
-        <View style={styles.headerSpacer} />
-      </LinearGradient>
+          <View style={{ width: 40 }} />
+        </View>
+      </View>
 
       <View style={styles.content}>
         <View style={styles.tabRow}>
-          {filters.map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tab,
-                activeFilter === tab && styles.activeTab,
-              ]}
-              onPress={() => setActiveFilter(tab)}
-              accessibilityRole="button"
-              accessibilityState={{
-                selected: activeFilter === tab,
-              }}
-            >
-              <Text
+          {filters.map((tab) => {
+            const isActive = activeFilter === tab;
+            return (
+              <TouchableOpacity
+                key={tab}
                 style={[
-                  styles.tabText,
-                  activeFilter === tab &&
-                    styles.activeTabText,
+                  styles.tab,
+                  isActive && styles.activeTab,
                 ]}
+                onPress={() => setActiveFilter(tab)}
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected: isActive,
+                }}
+                activeOpacity={0.7}
               >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.tabText,
+                    isActive && styles.activeTabText,
+                  ]}
+                >
+                  {tab}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <ScrollView
@@ -324,37 +331,52 @@ export default function ScreenCashHistory() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f6fa",
+    backgroundColor: "#F8FAFC",
+  },
+  topPurpleCard: {
+    backgroundColor: "#25145F",
+    paddingTop: Platform.OS === "ios" ? 56 : 44,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 48,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+    justifyContent: "space-between",
   },
   backBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  headerSpacer: {
-    width: 32,
+  headerTitleContainer: {
+    alignItems: "center",
+  },
+  headerEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.7)",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#fff",
-    letterSpacing: 0.5,
+    color: "#FFFFFF",
+    marginTop: 2,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 16,
   },
   tabRow: {
     flexDirection: "row",
     justifyContent: "center",
-    backgroundColor: "#f0f0f5",
+    backgroundColor: "#EDF2F7",
     borderRadius: 30,
     padding: 4,
     marginBottom: 20,
@@ -362,39 +384,50 @@ const styles = StyleSheet.create({
   },
   tab: {
     paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 30,
+    paddingHorizontal: 20,
+    borderRadius: 24,
   },
   activeTab: {
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 2,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#888",
+    color: "#64748B",
   },
   activeTabText: {
-    color: colors.primary,
+    color: "#25145F",
+    fontWeight: "700",
   },
   scrollContent: {
     paddingBottom: 40,
   },
   groupContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
   },
   monthHeader: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
-    color: colors.navy,
+    color: "#1E293B",
     marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
     letterSpacing: 0.3,
   },
   historyItem: {
@@ -403,59 +436,75 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f5",
+    borderBottomColor: "#F8FAFC",
   },
   historyLeft: {
     flex: 1,
   },
   historyCode: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.navy,
-    letterSpacing: 0.5,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+    letterSpacing: 0.3,
   },
   historyMeta: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 4,
-    gap: 12,
+    gap: 10,
   },
   historyDate: {
     fontSize: 12,
-    color: "#999",
+    color: "#94A3B8",
   },
   historyStatus: {
     fontSize: 11,
-    fontWeight: "500",
+    fontWeight: "600",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   redeemedStatus: {
-    color: "#4CAF50",
+    color: "#16A34A",
+    backgroundColor: "#DCFCE7",
   },
   unredeemedStatus: {
-    color: "#FF6B6B",
+    color: "#DC2626",
+    backgroundColor: "#FEE2E2",
   },
   historyRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   historyAmount: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
   },
   detailBtn: {
-    padding: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F4F0FF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 80,
+    marginTop: 60,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   emptyText: {
-    fontSize: 15,
-    color: "#aaa",
-    marginTop: 16,
+    fontSize: 14,
+    color: "#94A3B8",
+    marginTop: 14,
     textAlign: "center",
+    lineHeight: 20,
   },
 });

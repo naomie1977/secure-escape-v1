@@ -1,4 +1,4 @@
-// app/(tabs)/card-detail.tsx
+// screens/accounts/Card-details.tsx
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -12,6 +12,8 @@ import {
   Dimensions,
   Switch,
   ScrollView,
+  StatusBar,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -33,7 +35,8 @@ export default function CardDetail() {
 
   const [freezeCard, setFreezeCard] = useState(false);
   const [onlinePurchases, setOnlinePurchases] = useState(true);
-  const [internationalTransactions, setInternationalTransactions] = useState(true);
+  const [internationalTransactions, setInternationalTransactions] =
+    useState(true);
 
   const flipAnim = useRef(new Animated.Value(0)).current;
   const frontInterpolate = flipAnim.interpolate({
@@ -75,13 +78,20 @@ export default function CardDetail() {
     if (value) setFreezeModalVisible(true);
     else {
       setFreezeCard(false);
-      Alert.alert("Card Unfrozen", "Your card is now active and can be used normally.");
+      Alert.alert(
+        "Card Unfrozen",
+        "Your card is now active and can be used normally."
+      );
     }
   };
+
   const confirmFreeze = () => {
     setFreezeCard(true);
     setFreezeModalVisible(false);
-    Alert.alert("Card Frozen", "No payments, subscriptions or withdrawals can be made while it's frozen.");
+    Alert.alert(
+      "Card Frozen",
+      "No payments, subscriptions or withdrawals can be made while it's frozen."
+    );
   };
 
   const handleOnlinePurchases = (value: boolean) => {
@@ -97,7 +107,9 @@ export default function CardDetail() {
   const handleInternational = (value: boolean) => {
     setInternationalTransactions(value);
     Alert.alert(
-      value ? "International Transactions Enabled" : "International Transactions Disabled",
+      value
+        ? "International Transactions Enabled"
+        : "International Transactions Disabled",
       value
         ? "Your card can now be used for international transactions."
         : "International transactions disabled."
@@ -118,43 +130,104 @@ export default function CardDetail() {
         {
           text: "Report Lost",
           style: "destructive",
-          onPress: () => Alert.alert("Reported", "We've blocked your card. A new one will be issued."),
+          onPress: () =>
+            Alert.alert(
+              "Reported",
+              "We've blocked your card. A new one will be issued."
+            ),
         },
-        { text: "Replace", onPress: () => Alert.alert("Replacement", "A new card will be sent to your branch.") },
+        {
+          text: "Replace",
+          onPress: () =>
+            Alert.alert(
+              "Replacement",
+              "A new card will be sent to your branch."
+            ),
+        },
         { text: "Cancel", style: "cancel" },
       ]
     );
 
   const handleUpdateLimits = () => {
-    Alert.alert("Coming Soon", "Update permanent limits will be available in the next sprint.");
+    Alert.alert(
+      "Coming Soon",
+      "Update permanent limits will be available in the next sprint."
+    );
   };
 
   const handleTempLimits = () => {
-    Alert.alert("Coming Soon", "Set temporary limits will be available in the next sprint.");
+    Alert.alert(
+      "Coming Soon",
+      "Set temporary limits will be available in the next sprint."
+    );
   };
 
   if (!card) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Card not found</Text>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={colors.primaryDark}
+        />
+        <View style={styles.header}>
+          <View style={styles.appBar}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backBtn}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="arrow-back" size={22} color={colors.white} />
+            </TouchableOpacity>
+            <Text style={styles.appBarTitle}>Card details</Text>
+            <View style={styles.appBarSpacer} />
+          </View>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Card not found</Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[colors.primary, colors.primary]} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cards</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={colors.primaryDark}
+      />
+
+      {/* DEEP PURPLE HEADER */}
+      <View style={styles.header}>
+        <View style={styles.appBar}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.appBarTitle}>Card details</Text>
+          <View style={styles.appBarSpacer} />
+        </View>
+
+        <View style={styles.headerContent}>
+          <Text style={styles.headerEyebrow}>CARD CONTROLS</Text>
+          <Text style={styles.headerHeading}>{card.type || "My card"}</Text>
+          <Text style={styles.headerDescription}>
+            Manage security settings, view card details and control usage.
+          </Text>
+        </View>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* FLIP CARD SECTION */}
         <View style={styles.cardWrapper}>
           <View style={styles.cardContainer}>
             {/* FRONT SIDE */}
@@ -165,27 +238,74 @@ export default function CardDetail() {
                 { pointerEvents: isFlipped ? "none" : "auto" },
               ]}
             >
-              <LinearGradient colors={card.gradient} style={styles.card}>
+              <LinearGradient
+                colors={card.gradient || [colors.primaryDark, colors.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.card}
+              >
+                {/* DECORATIVE CIRCLES */}
+                <View
+                  style={styles.decorativeCircleLarge}
+                  pointerEvents="none"
+                />
+                <View
+                  style={styles.decorativeCircleSmall}
+                  pointerEvents="none"
+                />
+
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardType}>{card.type}</Text>
+                  <View style={styles.cardBrandGroup}>
+                    <View style={styles.cardBrandIcon}>
+                      <Ionicons
+                        name="wallet-outline"
+                        size={17}
+                        color={colors.white}
+                      />
+                    </View>
+                    <Text style={styles.cardBank}>{card.bank || "CAPITEC"}</Text>
+                  </View>
+
                   <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>{card.status}</Text>
+                    <View
+                      style={[
+                        styles.statusDot,
+                        card.status !== "ACTIVE" && styles.inactiveDot,
+                      ]}
+                    />
+                    <Text style={styles.statusText}>{card.status || "ACTIVE"}</Text>
                   </View>
                 </View>
-                <Text style={styles.cardNumber}>{card.displayNumber || card.number}</Text>
+
+                <Text style={styles.cardTypeLabel}>{card.type || "Bank account"}</Text>
+
+                <View style={styles.numberSection}>
+                  <Text style={styles.numberLabel}>CARD NUMBER</Text>
+                  <Text style={styles.cardNumber}>
+                    {card.displayNumber || card.number}
+                  </Text>
+                </View>
+
                 <View style={styles.cardFooter}>
-                  <View>
-                    <Text style={styles.cardBank}>{card.bank}</Text>
-                    <Text style={styles.cardHolder}>{card.holder}</Text>
+                  <View style={styles.holderGroup}>
+                    <Text style={styles.footerLabel}>ACCOUNT HOLDER</Text>
+                    <Text style={styles.cardHolder} numberOfLines={1}>
+                      {card.holder}
+                    </Text>
                   </View>
-                  <View style={styles.accountInfo}>
-                    <Text style={styles.accountNumber}>{card.accountNumber}</Text>
-                    <Text style={styles.accountType}>{card.accountType}</Text>
+                  <View style={styles.accountInfoGroup}>
+                    <Text style={styles.footerLabel}>ACCOUNT</Text>
+                    <Text style={styles.accountNumberText}>{card.accountNumber}</Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.detailsButton} onPress={handleShowDetails}>
+
+                <TouchableOpacity
+                  style={styles.detailsButton}
+                  onPress={handleShowDetails}
+                  activeOpacity={0.8}
+                >
                   <Text style={styles.detailsButtonText}>Show card details</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#fff" />
+                  <Ionicons name="eye-outline" size={15} color={colors.white} />
                 </TouchableOpacity>
               </LinearGradient>
             </Animated.View>
@@ -199,14 +319,24 @@ export default function CardDetail() {
                 { pointerEvents: isFlipped ? "auto" : "none" },
               ]}
             >
-              <LinearGradient colors={card.gradient} style={[styles.card, styles.cardBack]}>
+              <LinearGradient
+                colors={card.gradient || [colors.primaryDark, colors.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.card, styles.cardBack]}
+              >
+                <View
+                  style={styles.decorativeCircleLarge}
+                  pointerEvents="none"
+                />
+
                 <View style={styles.backContent}>
                   {[
                     { label: "Card Number", value: card.number },
-                    { label: "Expiry", value: card.expiry },
-                    { label: "CVV", value: card.cvv },
+                    { label: "Expiry Date", value: card.expiry || "12/28" },
+                    { label: "CVV Security Code", value: card.cvv || "•••" },
                     { label: "Account Number", value: card.accountNumber },
-                    { label: "Account Type", value: card.accountType },
+                    { label: "Account Type", value: card.accountType || "Savings" },
                   ].map((item, idx) => (
                     <View key={idx} style={styles.detailRow}>
                       <Text style={styles.detailLabel}>{item.label}</Text>
@@ -214,96 +344,170 @@ export default function CardDetail() {
                     </View>
                   ))}
                 </View>
-                <TouchableOpacity style={styles.flipBackButton} onPress={flipCard}>
-                  <Ionicons name="arrow-back" size={20} color="#fff" />
-                  <Text style={styles.flipBackText}>Flip back</Text>
+
+                <TouchableOpacity
+                  style={styles.flipBackButton}
+                  onPress={flipCard}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="arrow-back" size={16} color={colors.white} />
+                  <Text style={styles.flipBackText}>Hide card details</Text>
                 </TouchableOpacity>
               </LinearGradient>
             </Animated.View>
           </View>
         </View>
 
-        {/* Toggles and Actions */}
+        {/* SECURITY & TOGGLES SECTION */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Security & usage controls</Text>
+          <Text style={styles.sectionDescription}>
+            Manage how and where your card can be used.
+          </Text>
+        </View>
+
         <View style={styles.toggleSection}>
           <View style={styles.toggleItem}>
+            <View style={styles.toggleIconContainer}>
+              <Ionicons
+                name="snow-outline"
+                size={20}
+                color={freezeCard ? colors.dangerStrong : colors.primaryDark}
+              />
+            </View>
             <View style={styles.toggleTextContainer}>
               <Text style={styles.toggleTitle}>Freeze card</Text>
               <Text style={styles.toggleDescription}>
-                Lost or misplaced your card? No transactions can be done while it&apos;s frozen.
+                Temporarily disable all transactions, online payments and withdrawals.
               </Text>
             </View>
             <Switch
               value={freezeCard}
               onValueChange={handleFreezeToggle}
-              trackColor={{ false: "#ddd", true: colors.primary }}
-              thumbColor={freezeCard ? "#fff" : "#fff"}
+              trackColor={{ false: "#E2E8F0", true: colors.primary }}
+              thumbColor={colors.white}
             />
           </View>
+
           <View style={styles.toggleItem}>
+            <View style={styles.toggleIconContainer}>
+              <Ionicons
+                name="cart-outline"
+                size={20}
+                color={colors.primaryDark}
+              />
+            </View>
             <View style={styles.toggleTextContainer}>
               <Text style={styles.toggleTitle}>Online purchases</Text>
-              <Text style={styles.toggleDescription}>Use your card to shop online</Text>
+              <Text style={styles.toggleDescription}>
+                Allow your card to be used for digital payments and shopping.
+              </Text>
             </View>
             <Switch
               value={onlinePurchases}
               onValueChange={handleOnlinePurchases}
-              trackColor={{ false: "#ddd", true: colors.primary }}
-              thumbColor={onlinePurchases ? "#fff" : "#fff"}
+              trackColor={{ false: "#E2E8F0", true: colors.primary }}
+              thumbColor={colors.white}
             />
           </View>
-          <View style={styles.toggleItem}>
+
+          <View style={[styles.toggleItem, styles.lastToggleItem]}>
+            <View style={styles.toggleIconContainer}>
+              <Ionicons
+                name="globe-outline"
+                size={20}
+                color={colors.primaryDark}
+              />
+            </View>
             <View style={styles.toggleTextContainer}>
               <Text style={styles.toggleTitle}>International transactions</Text>
-              <Text style={styles.toggleDescription}>Use your card to make international transactions</Text>
+              <Text style={styles.toggleDescription}>
+                Enable cross-border payments and international online stores.
+              </Text>
             </View>
             <Switch
               value={internationalTransactions}
               onValueChange={handleInternational}
-              trackColor={{ false: "#ddd", true: colors.primary }}
-              thumbColor={internationalTransactions ? "#fff" : "#fff"}
+              trackColor={{ false: "#E2E8F0", true: colors.primary }}
+              thumbColor={colors.white}
             />
           </View>
-          <TouchableOpacity style={styles.learnMore}>
-            <Text style={styles.learnMoreText}>Learn more about card toggles</Text>
-          </TouchableOpacity>
         </View>
 
-        <View style={styles.missingSection}>
-          <Text style={styles.missingTitle}>Missing some features?</Text>
-          <Text style={styles.missingDescription}>
-            Search for Capitec in your phone&apos;s settings and switch on location permission for our app.
+        {/* CARD MANAGEMENT ACTIONS */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Card services</Text>
+          <Text style={styles.sectionDescription}>
+            Quick actions to update limits or manage physical cards.
           </Text>
         </View>
 
         <View style={styles.actionSection}>
-          <TouchableOpacity style={styles.actionItem} onPress={handleTapToPay}>
-            <Ionicons name="hand-left-outline" size={22} color={colors.navy} />
-            <Text style={styles.actionText}>Tap to pay</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionItem} onPress={handleReplaceStop}>
-            <View style={styles.actionLeft}>
-              <Ionicons name="card-outline" size={22} color={colors.navy} />
-              <Text style={styles.actionText}>Replace or Stop card</Text>
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={handleTapToPay}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="radio-outline" size={20} color={colors.primaryDark} />
             </View>
-            <View style={styles.newBadge}>
-              <Text style={styles.newBadgeText}>New</Text>
+            <View style={styles.actionTextGroup}>
+              <Text style={styles.actionTitle}>Contactless payment</Text>
+              <Text style={styles.actionDescription}>Tap to pay is enabled</Text>
             </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSub} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionItem} onPress={handleUpdateLimits}>
-            <Ionicons name="refresh-outline" size={22} color={colors.navy} />
-            <Text style={styles.actionText}>Update permanent limits</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={handleUpdateLimits}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="options-outline" size={20} color={colors.primaryDark} />
+            </View>
+            <View style={styles.actionTextGroup}>
+              <Text style={styles.actionTitle}>Update permanent limits</Text>
+              <Text style={styles.actionDescription}>Daily ATM and online spend caps</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSub} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionItem} onPress={handleTempLimits}>
-            <Ionicons name="time-outline" size={22} color={colors.navy} />
-            <Text style={styles.actionText}>Set temporary limits</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={handleTempLimits}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="time-outline" size={20} color={colors.primaryDark} />
+            </View>
+            <View style={styles.actionTextGroup}>
+              <Text style={styles.actionTitle}>Set temporary limits</Text>
+              <Text style={styles.actionDescription}>Temporary increase for large purchases</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSub} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionItem, styles.lastActionItem]}
+            onPress={handleReplaceStop}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionIconBox}>
+              <Ionicons name="alert-circle-outline" size={20} color={colors.dangerStrong} />
+            </View>
+            <View style={styles.actionTextGroup}>
+              <Text style={[styles.actionTitle, { color: colors.dangerStrong }]}>
+                Replace or Stop card
+              </Text>
+              <Text style={styles.actionDescription}>Report lost, stolen or damaged card</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSub} />
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Modals */}
+      {/* WARNING MODAL */}
       <Modal
         animationType="fade"
         transparent
@@ -316,20 +520,26 @@ export default function CardDetail() {
           onPress={() => setWarningModalVisible(false)}
         >
           <View style={styles.warningModalContent}>
-            <Ionicons name="shield-checkmark" size={56} color="#FF6B6B" />
-            <Text style={styles.warningTitle}>PROTECT YOUR CARD DETAILS</Text>
+            <View style={styles.warningIconCircle}>
+              <Ionicons name="shield-checkmark-outline" size={36} color={colors.dangerStrong} />
+            </View>
+            <Text style={styles.warningEyebrow}>SECURITY NOTICE</Text>
+            <Text style={styles.warningTitle}>Protect your card details</Text>
             <Text style={styles.warningDescription}>
-              Don&apos;t respond to anyone requesting your card details.\n\nWe will never ask for your PIN or CVV.
+              Never share your full card number, CVV or banking PIN with anyone. Capitec staff will never ask for these details.
             </Text>
-            <TouchableOpacity style={styles.warningButton} onPress={handleWarningConfirm}>
-              <LinearGradient colors={[colors.primary, colors.primary]} style={styles.warningGradient}>
-                <Text style={styles.warningButtonText}>Continue</Text>
-              </LinearGradient>
+            <TouchableOpacity
+              style={styles.warningButton}
+              onPress={handleWarningConfirm}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.warningButtonText}>I understand, continue</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
+      {/* PIN CONFIRMATION MODAL */}
       <Modal
         animationType="fade"
         transparent
@@ -342,12 +552,17 @@ export default function CardDetail() {
           onPress={() => setPinModalVisible(false)}
         >
           <View style={styles.pinModalContent}>
+            <View style={styles.pinIconCircle}>
+              <Ionicons name="lock-closed-outline" size={28} color={colors.primaryDark} />
+            </View>
             <Text style={styles.pinTitle}>Enter your PIN</Text>
-            <Text style={styles.pinSubtitle}>Confirm to view card details</Text>
+            <Text style={styles.pinSubtitle}>
+              Confirm your 5-digit banking PIN to view sensitive card numbers.
+            </Text>
             <TextInput
               style={styles.pinInput}
-              placeholder="• • • • •"
-              placeholderTextColor="#ccc"
+              placeholder="•••••"
+              placeholderTextColor="#CBD5E1"
               keyboardType="number-pad"
               secureTextEntry
               maxLength={5}
@@ -362,16 +577,18 @@ export default function CardDetail() {
               >
                 <Text style={styles.pinCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.pinButton} onPress={handlePinConfirm}>
-                <LinearGradient colors={[colors.primary, colors.primary]} style={styles.pinGradient}>
-                  <Text style={styles.pinConfirmText}>Confirm</Text>
-                </LinearGradient>
+              <TouchableOpacity
+                style={[styles.pinButton, styles.pinConfirm]}
+                onPress={handlePinConfirm}
+              >
+                <Text style={styles.pinConfirmText}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
       </Modal>
 
+      {/* FREEZE CONFIRMATION MODAL */}
       <Modal
         animationType="fade"
         transparent
@@ -384,10 +601,12 @@ export default function CardDetail() {
           onPress={() => setFreezeModalVisible(false)}
         >
           <View style={styles.confirmModalContent}>
-            <Ionicons name="warning-outline" size={48} color="#FF6B6B" />
+            <View style={styles.warningIconCircle}>
+              <Ionicons name="snow-outline" size={36} color={colors.dangerStrong} />
+            </View>
             <Text style={styles.confirmTitle}>Freeze your card?</Text>
             <Text style={styles.confirmDescription}>
-              You are about to freeze your card. No payments, subscriptions or withdrawals can be made while it&apos;s frozen.
+              While frozen, all card purchases, subscriptions and ATM withdrawals will be declined immediately. You can unfreeze it at any time.
             </Text>
             <View style={styles.confirmButtonRow}>
               <TouchableOpacity
@@ -400,7 +619,7 @@ export default function CardDetail() {
                 style={[styles.confirmButton, styles.confirmFreeze]}
                 onPress={confirmFreeze}
               >
-                <Text style={styles.confirmFreezeText}>Freeze Card</Text>
+                <Text style={styles.confirmFreezeText}>Freeze card</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -410,24 +629,84 @@ export default function CardDetail() {
   );
 }
 
-// Styles – adapted from your original, with project colours
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fa" },
+  container: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+
+  // PURPLE HEADER
   header: {
+    backgroundColor: colors.primaryDark,
+  },
+  appBar: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 70,
+    paddingTop:
+      Platform.OS === "android"
+        ? (StatusBar.currentHeight ?? 24) + 8
+        : 56,
+    paddingBottom: 8,
     paddingHorizontal: 20,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: -8,
+  },
+  appBarTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.white,
+    textAlign: "center",
+  },
+  appBarSpacer: {
+    width: 44,
+  },
+  headerContent: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
     paddingBottom: 24,
   },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
-  scrollContent: { paddingBottom: 40, paddingTop: 16 },
-  cardWrapper: { paddingHorizontal: 20, marginBottom: 16 },
+  headerEyebrow: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#E4E1FF",
+    letterSpacing: 0.7,
+    marginBottom: 8,
+  },
+  headerHeading: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: colors.white,
+    letterSpacing: -0.5,
+    lineHeight: 34,
+  },
+  headerDescription: {
+    fontSize: 13,
+    color: "#E4E1FF",
+    marginTop: 6,
+    lineHeight: 19,
+    maxWidth: 320,
+  },
+
+  // SCROLL CONTENT
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+
+  // CARD DISPLAY
+  cardWrapper: {
+    marginBottom: 24,
+  },
   cardContainer: {
     width: "100%",
-    height: 220,
+    height: 224,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -437,206 +716,488 @@ const styles = StyleSheet.create({
     backfaceVisibility: "hidden",
     position: "absolute",
   },
-  backCard: { transform: [{ rotateY: "180deg" }] },
+  backCard: {
+    transform: [{ rotateY: "180deg" }],
+  },
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
     width: "100%",
     height: "100%",
+    overflow: "hidden",
+    justifyContent: "space-between",
+    elevation: 4,
+    shadowColor: "#25145F",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
   },
-  cardBack: {},
+  cardBack: {
+    justifyContent: "space-between",
+  },
+  decorativeCircleLarge: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    top: -110,
+    right: -80,
+  },
+  decorativeCircleSmall: {
+    position: "absolute",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    bottom: -65,
+    left: -40,
+  },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
   },
-  cardType: { fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: 0.5 },
+  cardBrandGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cardBrandIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardBank: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
   statusBadge: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  statusText: { fontSize: 12, fontWeight: "600", color: "#fff" },
-  cardNumber: { fontSize: 18, fontWeight: "600", color: "#fff", letterSpacing: 2, marginBottom: 16 },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#4ADE80",
+  },
+  inactiveDot: {
+    backgroundColor: "#F87171",
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
+  cardTypeLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.white,
+    marginTop: 4,
+  },
+  numberSection: {
+    marginTop: 2,
+  },
+  numberLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.65)",
+    letterSpacing: 0.7,
+    marginBottom: 2,
+  },
+  cardNumber: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: colors.white,
+    letterSpacing: 2,
+  },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
   },
-  cardBank: { fontSize: 14, fontWeight: "600", color: "#fff", opacity: 0.9 },
-  cardHolder: { fontSize: 12, fontWeight: "500", color: "#fff", opacity: 0.8, marginTop: 2 },
-  accountInfo: { alignItems: "flex-end" },
-  accountNumber: { fontSize: 13, fontWeight: "600", color: "#fff", opacity: 0.9 },
-  accountType: { fontSize: 12, fontWeight: "500", color: "#fff", opacity: 0.7, marginTop: 2 },
+  holderGroup: {
+    flex: 1,
+  },
+  accountInfoGroup: {
+    alignItems: "flex-end",
+  },
+  footerLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.65)",
+    letterSpacing: 0.6,
+    marginBottom: 2,
+  },
+  cardHolder: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.white,
+  },
+  accountNumberText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.white,
+  },
   detailsButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     alignSelf: "flex-end",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginTop: 12,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    gap: 6,
+    marginTop: 4,
   },
-  detailsButtonText: { fontSize: 12, fontWeight: "600", color: "#fff", marginRight: 4 },
+  detailsButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.white,
+  },
   backContent: {
     flex: 1,
     justifyContent: "center",
-    paddingVertical: 4,
+    gap: 8,
   },
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 2,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(255,255,255,0.15)",
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.12)",
   },
   detailLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     color: "rgba(255,255,255,0.7)",
   },
   detailValue: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#fff",
+    fontWeight: "700",
+    color: colors.white,
   },
   flipBackButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
-    paddingVertical: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingVertical: 8,
+    backgroundColor: "rgba(255,255,255,0.18)",
     borderRadius: 12,
+    gap: 6,
+    marginTop: 6,
   },
-  flipBackText: { fontSize: 13, fontWeight: "600", color: "#fff", marginLeft: 6 },
+  flipBackText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.white,
+  },
+
+  // SECTION HEADERS
+  sectionHeader: {
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.navy,
+    letterSpacing: -0.2,
+  },
+  sectionDescription: {
+    fontSize: 12,
+    color: colors.textSub,
+    marginTop: 2,
+  },
+
+  // TOGGLES
   toggleSection: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   toggleItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#E2E8F0",
+    gap: 12,
   },
-  toggleTextContainer: { flex: 1, marginRight: 12 },
-  toggleTitle: { fontSize: 15, fontWeight: "600", color: colors.navy },
-  toggleDescription: { fontSize: 12, color: "#888", marginTop: 2 },
-  learnMore: { marginTop: 8, alignItems: "center" },
-  learnMoreText: { fontSize: 13, fontWeight: "600", color: colors.primary },
-  missingSection: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+  lastToggleItem: {
+    borderBottomWidth: 0,
   },
-  missingTitle: { fontSize: 15, fontWeight: "700", color: colors.navy, marginBottom: 4 },
-  missingDescription: { fontSize: 13, color: "#888", lineHeight: 18 },
+  toggleIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toggleTextContainer: {
+    flex: 1,
+  },
+  toggleTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.navy,
+  },
+  toggleDescription: {
+    fontSize: 11,
+    color: colors.textSub,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+
+  // ACTIONS
   actionSection: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   actionItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#E2E8F0",
+    gap: 12,
   },
-  actionLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
-  actionText: { fontSize: 14, fontWeight: "500", color: colors.navy, marginLeft: 12, flex: 1 },
-  newBadge: { backgroundColor: colors.primary, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
-  newBadgeText: { fontSize: 12, fontWeight: "700", color: "#fff" },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+  lastActionItem: {
+    borderBottomWidth: 0,
+  },
+  actionIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
   },
-  warningModalContent: {
-    backgroundColor: "#fff",
-    marginHorizontal: 30,
-    borderRadius: 12,
-    padding: 24,
-    alignItems: "center",
-    width: "85%",
+  actionTextGroup: {
+    flex: 1,
   },
-  warningTitle: { fontSize: 18, fontWeight: "800", color: "#FF6B6B", marginTop: 12, textAlign: "center" },
-  warningDescription: { fontSize: 14, color: "#666", textAlign: "center", marginTop: 8, lineHeight: 20 },
-  warningButton: { borderRadius: 12, overflow: "hidden", marginTop: 20, width: "100%" },
-  warningGradient: { paddingVertical: 14, alignItems: "center" },
-  warningButtonText: { fontSize: 16, fontWeight: "700", color: "#fff" },
-  pinModalContent: {
-    backgroundColor: "#fff",
-    marginHorizontal: 30,
-    borderRadius: 12,
-    padding: 24,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-    width: "80%",
-  },
-  pinTitle: { fontSize: 20, fontWeight: "700", color: colors.navy, marginBottom: 4 },
-  pinSubtitle: { fontSize: 13, color: "#888", marginBottom: 24 },
-  pinInput: {
-    fontSize: 28,
-    fontWeight: "300",
-    letterSpacing: 16,
-    textAlign: "center",
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.primary,
-    paddingVertical: 8,
-    width: "80%",
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
     color: colors.navy,
   },
-  pinButtonRow: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginTop: 28, gap: 12 },
-  pinButton: { flex: 1, borderRadius: 12, overflow: "hidden" },
-  pinCancel: { backgroundColor: "#f0f0f5", justifyContent: "center", alignItems: "center", paddingVertical: 14 },
-  pinCancelText: { fontSize: 16, fontWeight: "600", color: "#888" },
-  pinGradient: { paddingVertical: 14, alignItems: "center" },
-  pinConfirmText: { fontSize: 16, fontWeight: "700", color: "#fff" },
-  confirmModalContent: {
-    backgroundColor: "#fff",
-    marginHorizontal: 30,
-    borderRadius: 12,
+  actionDescription: {
+    fontSize: 11,
+    color: colors.textSub,
+    marginTop: 2,
+  },
+
+  // MODALS
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  warningModalContent: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
     padding: 24,
     alignItems: "center",
-    width: "85%",
+    width: "100%",
+    maxWidth: 340,
   },
-  confirmTitle: { fontSize: 20, fontWeight: "700", color: colors.navy, marginTop: 12 },
-  confirmDescription: { fontSize: 14, color: "#666", textAlign: "center", marginTop: 8, lineHeight: 20 },
-  confirmButtonRow: { flexDirection: "row", marginTop: 24, gap: 12, width: "100%" },
-  confirmButton: { flex: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
-  confirmCancel: { backgroundColor: "#f0f0f5" },
-  confirmCancelText: { fontSize: 16, fontWeight: "600", color: "#888" },
-  confirmFreeze: { backgroundColor: "#FF6B6B" },
-  confirmFreezeText: { fontSize: 16, fontWeight: "700", color: "#fff" },
-  errorText: { fontSize: 18, color: "red", textAlign: "center", marginTop: 100 },
+  warningIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FEE2E2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  warningEyebrow: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: colors.dangerStrong,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  warningTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.navy,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  warningDescription: {
+    fontSize: 13,
+    color: colors.textSub,
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 20,
+  },
+  warningButton: {
+    backgroundColor: colors.primaryDark,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    width: "100%",
+  },
+  warningButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.white,
+  },
+
+  pinModalContent: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 320,
+  },
+  pinIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#F3F0FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  pinTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.navy,
+    marginBottom: 4,
+  },
+  pinSubtitle: {
+    fontSize: 12,
+    color: colors.textSub,
+    textAlign: "center",
+    lineHeight: 17,
+    marginBottom: 20,
+  },
+  pinInput: {
+    fontSize: 26,
+    fontWeight: "700",
+    letterSpacing: 12,
+    textAlign: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primaryDark,
+    paddingVertical: 8,
+    width: "70%",
+    color: colors.navy,
+  },
+  pinButtonRow: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+    marginTop: 24,
+  },
+  pinButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  pinCancel: {
+    backgroundColor: colors.surfaceMuted,
+  },
+  pinCancelText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textSub,
+  },
+  pinConfirm: {
+    backgroundColor: colors.primaryDark,
+  },
+  pinConfirmText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.white,
+  },
+
+  confirmModalContent: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 340,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.navy,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  confirmDescription: {
+    fontSize: 13,
+    color: colors.textSub,
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 19,
+  },
+  confirmButtonRow: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+    marginTop: 24,
+  },
+  confirmButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  confirmCancel: {
+    backgroundColor: colors.surfaceMuted,
+  },
+  confirmCancelText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textSub,
+  },
+  confirmFreeze: {
+    backgroundColor: colors.dangerStrong,
+  },
+  confirmFreezeText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.white,
+  },
+
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.dangerStrong,
+  },
 });

@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState } from "react";
 import {
   View,
@@ -7,12 +8,12 @@ import {
   ActivityIndicator,
   TextInput,
   SectionList,
+  StatusBar,
+  Platform,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/utils/theme";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "expo-router";
+import { colors, spacing, radii, sizing } from "@/utils/theme";
+import { useFocusEffect, useRouter, useLocalSearchParams } from "expo-router";
 import { getAccountById } from "@/services/accountService";
 import { getTransactions } from "@/services/transactionServices";
 import { AccountResponse } from "@/types/account";
@@ -123,6 +124,7 @@ export default function AccountDetail() {
 
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
+
     return date.toLocaleDateString("en-ZA", {
       day: "2-digit",
       month: "short",
@@ -133,13 +135,16 @@ export default function AccountDetail() {
   const renderItem = ({ item }: { item: TransactionResponse }) => {
     const statusMeta = STATUS_META[item.status] ?? {
       label: item.status,
-      bg: "#F0F0F0",
-      color: "#888",
+      bg: colors.surfaceMuted,
+      color: colors.textSub,
     };
 
     return (
       <TouchableOpacity
-        style={styles.transactionItem}
+        style={styles.transactionRow}
+        activeOpacity={0.65}
+        accessibilityRole="button"
+        accessibilityLabel={`View transaction for ${item.beneficiaryName || item.description}, ${formatAmount(item.amount, item.currency)}, ${statusMeta.label}`}
         onPress={() =>
           router.push({
             pathname: "/transactions/transaction-detail",
@@ -147,239 +152,597 @@ export default function AccountDetail() {
           })
         }
       >
+        <View style={styles.transactionIcon}>
+          <Ionicons
+            name="swap-horizontal-outline"
+            size={19}
+            color={colors.primaryDark}
+          />
+        </View>
+
         <View style={styles.transactionLeft}>
-          <Text style={styles.merchantName}>
+          <Text style={styles.merchantName} numberOfLines={1}>
             {item.beneficiaryName || item.description}
           </Text>
-          <View style={styles.transactionMeta}>
-            <Text style={styles.metaText}>{item.transactionType}</Text>
-            <Text style={styles.dot}>•</Text>
-            <Text style={styles.metaText}>{formatTime(item.createdAt)}</Text>
-          </View>
+
+          <Text style={styles.transactionSubtitle} numberOfLines={1}>
+            {item.transactionType} · {formatTime(item.createdAt)}
+          </Text>
         </View>
+
         <View style={styles.transactionRight}>
-          <Text style={styles.amount}>
+          <Text
+            style={styles.amount}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
             {formatAmount(item.amount, item.currency)}
           </Text>
+
           <View
-            style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}
+            style={[
+              styles.statusBadge,
+              { backgroundColor: statusMeta.bg },
+            ]}
           >
             <Text style={[styles.statusText, { color: statusMeta.color }]}>
               {statusMeta.label}
             </Text>
           </View>
         </View>
+
+        <Ionicons
+          name="chevron-forward"
+          size={15}
+          color={colors.textLight}
+          style={styles.rowChevron}
+        />
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={["#5B8DEF", "#6C63FF"]} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {account?.accountName ?? "Account"}
-        </Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={colors.primaryDark}
+      />
 
-      <View style={styles.whiteCard}>
-        <View style={styles.balanceSection}>
-          <View style={styles.balanceBox}>
-            <Text style={styles.balanceLabel}>Available</Text>
-            <Text style={styles.balanceAmount}>
-              {account
-                ? formatAmount(account.availableBalance, account.currency)
-                : "—"}
-            </Text>
-          </View>
-          <View style={styles.balanceBox}>
-            <Text style={styles.balanceLabel}>Current</Text>
-            <Text style={styles.balanceAmountSmall}>
-              {account
-                ? formatAmount(account.currentBalance, account.currency)
-                : "—"}
-            </Text>
-          </View>
+      {/* ACCOUNT HEADER */}
+      <View style={styles.header}>
+        <View style={styles.appBar}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.appBarBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            hitSlop={{
+              top: 8,
+              bottom: 8,
+              left: 8,
+              right: 8,
+            }}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={22}
+              color={colors.white}
+            />
+          </TouchableOpacity>
+
+          <Text style={styles.appBarTitle} numberOfLines={1}>
+            Account details
+          </Text>
+
+          <View style={styles.appBarSpacer} />
         </View>
 
-        {account && (
-          <View style={styles.statusRow}>
-            <View
-              style={[
-                styles.accountStatusBadge,
-                {
-                  backgroundColor:
-                    account.status === "Active" ? "#E6F7EE" : "#FDECEC",
-                },
-              ]}
-            >
+        {/* BALANCE SUMMARY */}
+        <View style={styles.balanceSection}>
+          <Text style={styles.accountEyebrow} numberOfLines={1}>
+            {account?.accountName ?? "YOUR ACCOUNT"}
+          </Text>
+
+          <Text style={styles.balanceLabel}>
+            Available balance
+          </Text>
+
+          <Text
+            style={styles.balanceAmount}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.65}
+          >
+            {account
+              ? formatAmount(
+                  account.availableBalance,
+                  account.currency,
+                )
+              : "—"}
+          </Text>
+
+          <View style={styles.balanceDivider} />
+
+          <View style={styles.balanceMetaRow}>
+            <View style={styles.currentBalance}>
+              <Text style={styles.currentBalanceLabel}>
+                Current balance
+              </Text>
+
               <Text
-                style={[
-                  styles.accountStatusText,
-                  {
-                    color: account.status === "Active" ? "#1FA971" : "#E5484D",
-                  },
-                ]}
+                style={styles.currentBalanceValue}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
               >
-                {account.status}
+                {account
+                  ? formatAmount(
+                      account.currentBalance,
+                      account.currency,
+                    )
+                  : "—"}
               </Text>
             </View>
-            <Text style={styles.accountNumber}>{account.accountNumber}</Text>
-          </View>
-        )}
 
+            {account && (
+              <View style={styles.statusCluster}>
+                <View style={styles.accountStatusRow}>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      {
+                        backgroundColor:
+                          account.status === "Active"
+                            ? "#8DE9C3"
+                            : "#FFC4C4",
+                      },
+                    ]}
+                  />
+
+                  <Text style={styles.accountStatusText}>
+                    {account.status}
+                  </Text>
+                </View>
+
+                <Text
+                  style={styles.accountNumber}
+                  numberOfLines={1}
+                >
+                  {account.accountNumber}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* TRANSACTION HEADER */}
+      <View style={styles.contentHeader}>
+        <View style={styles.historyHeadingRow}>
+          <Text style={styles.historyTitle}>
+            Transactions
+          </Text>
+
+          {!loading && !error && (
+            <Text style={styles.transactionCount}>
+              {filteredTransactions.length}
+            </Text>
+          )}
+        </View>
+
+        {/* SEARCH */}
         <View style={styles.searchContainer}>
           <Ionicons
-            name="search"
-            size={18}
-            color="#aaa"
-            style={styles.searchIcon}
+            name="search-outline"
+            size={19}
+            color={colors.textSub}
           />
+
           <TextInput
             style={styles.searchInput}
             placeholder="Search transactions"
-            placeholderTextColor="#aaa"
+            placeholderTextColor={colors.textLight}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            maxLength={25}
+            returnKeyType="search"
+            accessibilityLabel="Search transactions"
           />
+
           {!!searchQuery && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={18} color="#aaa" />
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={{
+                top: 8,
+                bottom: 8,
+                left: 8,
+                right: 8,
+              }}
+            >
+              <Ionicons
+                name="close-circle"
+                size={19}
+                color={colors.textSub}
+              />
             </TouchableOpacity>
           )}
         </View>
+      </View>
 
-        {loading && (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
+      {/* LOADING STATE */}
+      {loading && (
+        <View style={styles.stateWrap}>
+          <ActivityIndicator
+            color={colors.primary}
+            size="small"
+          />
+
+          <Text style={styles.stateCaption}>
+            Loading transactions…
+          </Text>
+        </View>
+      )}
+
+      {/* ERROR STATE */}
+      {!!error && !loading && (
+        <View style={styles.stateWrap}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={28}
+            color={colors.textSub}
+          />
+
+          <Text style={styles.emptyText}>
+            {error}
+          </Text>
+        </View>
+      )}
+
+      {/* TRANSACTION LIST */}
+      <SectionList
+        style={styles.list}
+        sections={loading || error ? [] : sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={styles.sectionHeaderWrap}>
+            <Text style={styles.sectionHeader}>
+              {title}
+            </Text>
+          </View>
         )}
-        {!!error && !loading && <Text style={styles.emptyText}>{error}</Text>}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        stickySectionHeadersEnabled={false}
+        keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={
+          !loading && !error ? (
+            <View style={styles.stateWrap}>
+              <Ionicons
+                name="receipt-outline"
+                size={28}
+                color={colors.textLight}
+              />
 
-        <SectionList
-          sections={loading || error ? [] : sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={({ section: { title } }) => (
-            <Text style={styles.sectionHeader}>{title}</Text>
-          )}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            !loading && !error ? (
               <Text style={styles.emptyText}>
                 {searchQuery.trim()
                   ? "No transactions match your search"
                   : "No transactions yet"}
               </Text>
-            ) : null
-          }
-        />
-      </View>
+            </View>
+          ) : null
+        }
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+
+  // HEADER
+
   header: {
+    backgroundColor: colors.primaryDark,
+  },
+
+  appBar: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingTop:
+      Platform.OS === "android"
+        ? (StatusBar.currentHeight ?? 24) + 8
+        : 56,
+    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  whiteCard: {
+
+  appBarBack: {
+    width: sizing.touchTarget,
+    height: sizing.touchTarget,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: -spacing.sm,
+  },
+
+  appBarTitle: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 20,
-    marginTop: -16,
-  },
-  balanceSection: { flexDirection: "row", gap: 12, marginBottom: 12 },
-  balanceBox: {
-    flex: 1,
-    backgroundColor: "#F8F9FC",
-    borderRadius: 16,
-    padding: 14,
-  },
-  balanceLabel: { fontSize: 12, color: colors.textSub, fontWeight: "600" },
-  balanceAmount: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: colors.navy,
-    marginTop: 4,
-  },
-  balanceAmountSmall: {
+    color: colors.white,
+    textAlign: "center",
     fontSize: 16,
     fontWeight: "700",
-    color: colors.navy,
-    marginTop: 4,
   },
-  statusRow: {
+
+  appBarSpacer: {
+    width: sizing.touchTarget,
+  },
+
+  // BALANCE
+
+  balanceSection: {
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
+  },
+
+  accountEyebrow: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+    color: "#E4E1FF",
+    textTransform: "uppercase",
+    marginBottom: spacing.xxl,
+  },
+
+  balanceLabel: {
+    fontSize: 13,
+    color: "#E4E1FF",
+    marginBottom: spacing.xs,
+  },
+
+  balanceAmount: {
+    fontSize: 36,
+    fontWeight: "800",
+    letterSpacing: -0.8,
+    color: colors.white,
+    fontVariant: ["tabular-nums"],
+  },
+
+  balanceDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    marginTop: spacing.xxl,
+    marginBottom: spacing.lg,
+  },
+
+  balanceMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    gap: spacing.md,
+  },
+
+  currentBalance: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  currentBalanceLabel: {
+    color: "#E4E1FF",
+    fontSize: 12,
+    marginBottom: spacing.xs,
+  },
+
+  currentBalanceValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.white,
+    fontVariant: ["tabular-nums"],
+  },
+
+  statusCluster: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "flex-end",
+    gap: spacing.xs,
+  },
+
+  accountStatusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 16,
+    gap: 6,
   },
-  accountStatusBadge: {
-    paddingHorizontal: 10,
+
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+
+  accountStatusText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  accountNumber: {
+    color: "#E4E1FF",
+    fontSize: 12,
+    fontVariant: ["tabular-nums"],
+  },
+
+  // TRANSACTION HEADER
+
+  contentHeader: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.greyLine,
+  },
+
+  historyHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+
+  historyTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: colors.navy,
+    letterSpacing: -0.3,
+  },
+
+  transactionCount: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSub,
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: radii.sm,
   },
-  accountStatusText: { fontSize: 11, fontWeight: "700" },
-  accountNumber: { fontSize: 12, color: colors.textSub },
+
+  // SEARCH
+
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    borderRadius: 30,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 8,
+    height: 46,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, fontWeight: "500" },
-  listContent: { paddingBottom: 40 },
-  sectionHeader: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: colors.navy,
-    marginTop: 14,
-    marginBottom: 4,
-  },
-  transactionItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  transactionLeft: { flex: 1 },
-  merchantName: { fontSize: 14, fontWeight: "700", color: colors.navy },
-  transactionMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 2,
-  },
-  metaText: { fontSize: 12, color: "#888" },
-  dot: { fontSize: 8, color: "#888" },
-  transactionRight: { alignItems: "flex-end" },
-  amount: { fontSize: 14, fontWeight: "700", color: colors.navy },
-  statusBadge: {
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  statusText: { fontSize: 10, fontWeight: "700" },
-  emptyText: { textAlign: "center", marginTop: 30, color: "#aaa" },
-});
 
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 0,
+    color: colors.navy,
+    fontSize: 14,
+  },
+
+  // TRANSACTION LIST
+
+  list: {
+    flex: 1,
+  },
+
+  listContent: {
+    paddingBottom: spacing.xxxl,
+  },
+
+  sectionHeaderWrap: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.white,
+  },
+
+  sectionHeader: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSub,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+
+  transactionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+    backgroundColor: colors.white,
+  },
+
+  transactionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.md,
+    backgroundColor: colors.primarySubtle,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.md,
+  },
+
+  transactionLeft: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: spacing.sm,
+  },
+
+  merchantName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.navy,
+  },
+
+  transactionSubtitle: {
+    fontSize: 12,
+    color: colors.textSub,
+    marginTop: spacing.xs,
+  },
+
+  transactionRight: {
+    alignItems: "flex-end",
+    flexShrink: 0,
+    maxWidth: "41%",
+  },
+
+  amount: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.navy,
+    fontVariant: ["tabular-nums"],
+  },
+
+  statusBadge: {
+    marginTop: 5,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radii.sm,
+  },
+
+  statusText: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
+
+  rowChevron: {
+    marginLeft: spacing.xs,
+  },
+
+  // LOADING AND EMPTY STATES
+
+  stateWrap: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxxl,
+    alignItems: "center",
+    gap: spacing.md,
+  },
+
+  stateCaption: {
+    fontSize: 13,
+    color: colors.textSub,
+  },
+
+  emptyText: {
+    textAlign: "center",
+    color: colors.textSub,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+});

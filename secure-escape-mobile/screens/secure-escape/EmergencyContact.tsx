@@ -1,26 +1,46 @@
+
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
+  Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+// SDK 57 exposes the existing contact picker API through the legacy entry point.
+import * as Contacts from "expo-contacts/legacy";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
-import * as Contacts from "expo-contacts/legacy";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "@/utils/theme";
 import { addEmergencyContact } from "@/services/emergencyContactService";
 import { completeEnrollment } from "@/services/secureEscapeService";
-import { ErrorBanner, ErrorModal } from "@/components/FormErrorMessage";
+import {
+  ErrorBanner,
+  ErrorModal,
+} from "@/components/FormErrorMessage";
+
+const PURPLE = "#25145F";
+const WHITE = "#FFFFFF";
+const BACKGROUND = "#F7F6FB";
+const LINE = "#E8E6F0";
+const PALE_PURPLE = "#EFEBFC";
+const MUTED_PURPLE = "#DCD5F5";
+const RED = "#C23B49";
+
+const MAX_CONTACTS = 5;
 
 type LocalContact = {
   id: string;
@@ -32,34 +52,78 @@ type LocalContact = {
   isPrimary: boolean;
 };
 
+interface ContactPhoneNumber {
+  number?: string;
+}
+
+interface ContactEmail {
+  email?: string;
+}
+
+let nextContactId = 0;
+
+const createContact = (
+  values: Partial<LocalContact> = {}
+): LocalContact => ({
+  id: `contact-${Date.now()}-${++nextContactId}`,
+  name: "",
+  surname: "",
+  phone: "",
+  email: "",
+  relationship: "",
+  isPrimary: false,
+  ...values,
+});
+
+const isEmptyContact = (contact: LocalContact) =>
+  !contact.name.trim() &&
+  !contact.surname.trim() &&
+  !contact.phone.trim() &&
+  !contact.email.trim() &&
+  !contact.relationship.trim();
+
+const isCompleteContact = (contact: LocalContact) =>
+  !!contact.name.trim() &&
+  !!contact.surname.trim() &&
+  !!contact.phone.trim() &&
+  !!contact.email.trim();
+
 export default function EmergencyContact() {
   const router = useRouter();
-  const { from } = useLocalSearchParams<{ from?: string }>();
-  const isOnboarding = from === "onboarding";
+  const insets = useSafeAreaInsets();
 
-  const [contacts, setContacts] = useState<LocalContact[]>([
-    {
-      id: Date.now().toString(),
-      name: "",
-      surname: "",
-      phone: "",
-      email: "",
-      relationship: "",
-      isPrimary: false,
-    },
-  ]);
+  const { from } = useLocalSearchParams<{
+    from?: string;
+  }>();
 
-  const [validContactAdded, setValidContactAdded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [contacts, setContacts] = useState<
+    LocalContact[]
+  >([]);
+
+  const [isImporting, setIsImporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
 
-  const buttonScale = useRef(new Animated.Value(1)).current;
-  const skipScale = useRef(new Animated.Value(1)).current;
+  const [error, setError] = useState<string | null>(
+    null
+  );
+  const [showErrorModal, setShowErrorModal] =
+    useState(false);
+  const [infoModalVisible, setInfoModalVisible] =
+    useState(false);
 
-  const [infoModalVisible, setInfoModalVisible] = useState(false);
-  const infoFadeAnim = useRef(new Animated.Value(0)).current;
-  const infoScaleAnim = useRef(new Animated.Value(0.9)).current;
+  // Prevent repeated submissions and duplicate saves
+  // if a request fails partway through multiple contacts.
+  const busyRef = useRef(false);
+  const savedContactIds = useRef<Set<string>>(
+    new Set()
+  );
+
+  const isBusy =
+    isImporting || isSaving || isSkipping;
+
+  const hasContacts = contacts.length > 0;
+  const canAddMore = contacts.length < MAX_CONTACTS;
 
   const showError = (message: string) => {
     setError(message);
@@ -71,102 +135,236 @@ export default function EmergencyContact() {
     setShowErrorModal(false);
   };
 
-  const openInfoModal = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setInfoModalVisible(true);
-
-    Animated.parallel([
-      Animated.timing(infoFadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.spring(infoScaleAnim, {
-        toValue: 1,
-        friction: 6,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  const goToNextScreen = () => {
+    if (from === "onboarding") {
+      router.push("/secure-escape/congrats");
+    } else {
+      router.push(
+        "/secure-escape/manage-secure-escape"
+      );
+    }
   };
 
-  const closeInfoModal = () => {
-    Animated.parallel([
-      Animated.timing(infoFadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(infoScaleAnim, {
-        toValue: 0.9,
-        friction: 6,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start(() => setInfoModalVisible(false));
+  const finishOnboarding = async () => {
+    if (from === "onboarding") {
+      await completeEnrollment();
+    }
+
+    goToNextScreen();
   };
 
-  const checkValidContacts = (contactsList: LocalContact[]) => {
-    const hasValid = contactsList.some(
-      (contact) =>
-        contact.name.trim() !== "" &&
-        contact.surname.trim() !== "" &&
-        contact.phone.trim() !== "" &&
-        contact.email.trim() !== "",
-    );
+  const addManualContact = () => {
+    if (isBusy) return;
 
-    setValidContactAdded(hasValid);
-    return hasValid;
-  };
-
-  const removeContact = (id: string) => {
-    if (contacts.length === 1) {
-      showError("You need at least one emergency contact slot.");
+    if (!canAddMore) {
+      showError(
+        "You can add up to 5 emergency contacts."
+      );
       return;
     }
 
-    const newContacts = contacts.filter((contact) => contact.id !== id);
-    setContacts(newContacts);
+    setContacts((current) => [
+      ...current,
+      createContact({
+        isPrimary: current.length === 0,
+      }),
+    ]);
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    checkValidContacts(newContacts);
+    clearError();
+
+    void Haptics.selectionAsync().catch(() => {});
+  };
+
+  const importFromContacts = async () => {
+    if (isBusy) return;
+
+    if (!canAddMore) {
+      showError(
+        "You can add up to 5 emergency contacts."
+      );
+      return;
+    }
+
+    try {
+      setIsImporting(true);
+      clearError();
+
+      const permission =
+        await Contacts.requestPermissionsAsync();
+
+      if (permission.status !== "granted") {
+        showError(
+          "Contacts permission is needed to import a contact."
+        );
+        return;
+      }
+
+      const picked =
+        await Contacts.presentContactPickerAsync();
+
+      if (!picked) return;
+
+      const firstName =
+        picked.firstName?.trim() ?? "";
+
+      const lastName =
+        picked.lastName?.trim() ?? "";
+
+      const displayName =
+        picked.name?.trim() ?? "";
+
+      // Some phone contacts have only one display name.
+      // Keep it editable rather than losing the name.
+      const name =
+        firstName ||
+        (lastName ? "" : displayName);
+
+      const surname = lastName;
+
+      const phone =
+        picked.phoneNumbers?.find(
+          (item: ContactPhoneNumber) =>
+            !!item.number?.trim()
+        )?.number?.trim() ?? "";
+
+      const email =
+        picked.emails?.find(
+          (item: ContactEmail) =>
+            !!item.email?.trim()
+        )?.email?.trim() ?? "";
+
+      const newContact = createContact({
+        name,
+        surname,
+        phone,
+        email,
+        isPrimary: contacts.length === 0,
+      });
+
+      setContacts((current) => {
+        // Fill a completely empty manual card first.
+        const emptyIndex = current.findIndex(
+          isEmptyContact
+        );
+
+        if (emptyIndex !== -1) {
+          return current.map((contact, index) =>
+            index === emptyIndex
+              ? {
+                  ...newContact,
+                  id: contact.id,
+                  isPrimary: contact.isPrimary,
+                }
+              : contact
+          );
+        }
+
+        if (current.length >= MAX_CONTACTS) {
+          return current;
+        }
+
+        return [
+          ...current,
+          {
+            ...newContact,
+            isPrimary:
+              current.length === 0,
+          },
+        ];
+      });
+
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success
+      ).catch(() => {});
+    } catch {
+      showError(
+        "Failed to import contact. Please try adding it manually."
+      );
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const updateContact = (
     id: string,
-    field: keyof LocalContact,
-    value: string | boolean,
+    field:
+      | "name"
+      | "surname"
+      | "phone"
+      | "email"
+      | "relationship",
+    value: string
   ) => {
-    const newContacts = contacts.map((contact) =>
-      contact.id === id ? { ...contact, [field]: value } : contact,
+    setContacts((current) =>
+      current.map((contact) =>
+        contact.id === id
+          ? {
+              ...contact,
+              [field]: value,
+            }
+          : contact
+      )
     );
 
-    setContacts(newContacts);
     clearError();
-    checkValidContacts(newContacts);
   };
 
-  const isValidEmail = (email: string) => {
-    const trimmedEmail = email.trim();
+  const selectPrimary = (id: string) => {
+    setContacts((current) =>
+      current.map((contact) => ({
+        ...contact,
+        isPrimary: contact.id === id,
+      }))
+    );
 
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+    void Haptics.selectionAsync().catch(() => {});
+  };
+
+  const removeContact = (id: string) => {
+    if (isBusy) return;
+
+    setContacts((current) => {
+      const remaining = current.filter(
+        (contact) => contact.id !== id
+      );
+
+      if (
+        remaining.length > 0 &&
+        !remaining.some(
+          (contact) => contact.isPrimary
+        )
+      ) {
+        return remaining.map(
+          (contact, index) => ({
+            ...contact,
+            isPrimary: index === 0,
+          })
+        );
+      }
+
+      return remaining;
+    });
+
+    clearError();
+    void Haptics.selectionAsync().catch(() => {});
   };
 
   const getValidationMessage = () => {
-    const completeContacts = contacts.filter(
-      (contact) =>
-        contact.name.trim() &&
-        contact.surname.trim() &&
-        contact.phone.trim() &&
-        contact.email.trim(),
-    );
-
-    if (completeContacts.length === 0) {
-      return "Please fill in at least one complete emergency contact (name, surname, phone number, and email address).";
+    if (contacts.length === 0) {
+      return "Please add an emergency contact or skip this step.";
     }
 
-    for (const contact of completeContacts) {
-      const fullName = `${contact.name.trim()} ${contact.surname.trim()}`;
+    for (let index = 0; index < contacts.length; index++) {
+      const contact = contacts[index];
+
+      if (!isCompleteContact(contact)) {
+        return `Please complete the name, surname, phone number, and email address for Contact ${
+          index + 1
+        }, or remove that contact.`;
+      }
+
+      const fullName =
+        `${contact.name.trim()} ${contact.surname.trim()}`;
 
       if (fullName.length > 100) {
         return "Emergency contact full name cannot be more than 100 characters.";
@@ -176,15 +374,17 @@ export default function EmergencyContact() {
         return "Emergency contact phone number cannot be more than 30 characters.";
       }
 
+      if (!contact.email.includes("@") || !contact.email.includes(".")) {
+        return `Please enter a valid email address for Contact ${index + 1}.`;
+      }
+
       if (contact.email.trim().length > 254) {
-        return "Emergency contact email address cannot be more than 254 characters.";
+        return "Emergency contact email cannot be more than 254 characters.";
       }
 
-      if (!isValidEmail(contact.email)) {
-        return `Please enter a valid email address for ${fullName}.`;
-      }
-
-      if (contact.relationship.trim().length > 50) {
+      if (
+        contact.relationship.trim().length > 50
+      ) {
         return "Emergency contact relationship cannot be more than 50 characters.";
       }
     }
@@ -192,926 +392,1301 @@ export default function EmergencyContact() {
     return null;
   };
 
-  const finishAfterSaving = async () => {
-    if (isOnboarding) {
-      await completeEnrollment();
-      router.replace("/secure-escape/congrats");
-      return;
-    }
+  const handleSaveContacts = async () => {
+    if (busyRef.current) return;
 
-    router.replace("/secure-escape/manage-secure-escape");
-  };
-
-  const handleAddContact = async () => {
-    if (isSaving) {
-      return;
-    }
-
-    const validationMessage = getValidationMessage();
+    const validationMessage =
+      getValidationMessage();
 
     if (validationMessage) {
-      void Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      );
-
       showError(validationMessage);
+
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Error
+      ).catch(() => {});
+
       return;
     }
 
+    busyRef.current = true;
+    setIsSaving(true);
+    clearError();
+
     try {
-      setIsSaving(true);
-      clearError();
+      for (const contact of contacts) {
+        if (
+          savedContactIds.current.has(contact.id)
+        ) {
+          continue;
+        }
 
-      const validContacts = contacts.filter(
-        (contact) =>
-          contact.name.trim() &&
-          contact.surname.trim() &&
-          contact.phone.trim() &&
-          contact.email.trim(),
-      );
-
-      for (const contact of validContacts) {
         await addEmergencyContact({
-          fullName: `${contact.name.trim()} ${contact.surname.trim()}`,
+          fullName:
+            `${contact.name.trim()} ${contact.surname.trim()}`,
           phoneNumber: contact.phone.trim(),
           email: contact.email.trim(),
-          relationship: contact.relationship.trim(),
+          relationship:
+            contact.relationship.trim() || "Emergency Contact",
           isPrimary: contact.isPrimary,
           notifyOnDuress: true,
         });
+
+        savedContactIds.current.add(
+          contact.id
+        );
       }
 
-      await finishAfterSaving();
+      await finishOnboarding();
 
       void Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success,
-      );
+        Haptics.NotificationFeedbackType.Success
+      ).catch(() => {});
     } catch (err) {
-      void Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      );
-
       showError(
         err instanceof Error
           ? err.message
-          : "Failed to save your emergency contact.",
+          : "Failed to save contacts."
       );
+
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Error
+      ).catch(() => {});
     } finally {
+      busyRef.current = false;
       setIsSaving(false);
     }
   };
 
-  const handleSkip = () => {
-    if (isOnboarding || isSaving) {
-      return;
-    }
+  const performSkip = async () => {
+    if (busyRef.current) return;
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.replace("/secure-escape/manage-secure-escape");
-  };
-
-  const animateButton = (anim: Animated.Value) => {
-    Animated.sequence([
-      Animated.timing(anim, {
-        toValue: 0.96,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.spring(anim, {
-        toValue: 1,
-        friction: 3,
-        tension: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const addContact = () => {
-    if (isSaving) {
-      return;
-    }
-
-    if (contacts.length >= 5) {
-      showError("You can add up to 5 emergency contacts.");
-      return;
-    }
-
-    const newContact: LocalContact = {
-      id: Date.now().toString(),
-      name: "",
-      surname: "",
-      phone: "",
-      email: "",
-      relationship: "",
-      isPrimary: false,
-    };
-
-    const newContacts = [...contacts, newContact];
-    setContacts(newContacts);
-
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    checkValidContacts(newContacts);
-  };
-
-  const importFromContacts = async () => {
-    if (isSaving) {
-      return;
-    }
+    busyRef.current = true;
+    setIsSkipping(true);
+    clearError();
 
     try {
-      const { status } = await Contacts.requestPermissionsAsync();
+      // Skipping contacts must still finish onboarding.
+      await finishOnboarding();
 
-      if (status !== "granted") {
-        showError("Contacts permission is needed to import a contact.");
-        return;
-      }
-
-      const picked = await Contacts.presentContactPickerAsync();
-
-      if (!picked) {
-        return;
-      }
-
-      const firstName = picked.firstName?.trim() ?? "";
-      const lastName = picked.lastName?.trim() ?? "";
-      const phoneNumber =
-        picked.phoneNumbers?.[0]?.number?.trim() ?? "";
-      const emailAddress =
-        picked.emails?.[0]?.email?.trim() ?? "";
-
-      if (!phoneNumber) {
-        showError(
-          "This contact does not have a phone number. Please choose another contact or enter the number manually.",
-        );
-        return;
-      }
-
-      const firstEmptyIndex = contacts.findIndex(
-        (contact) =>
-          !contact.name.trim() &&
-          !contact.surname.trim() &&
-          !contact.phone.trim() &&
-          !contact.email.trim(),
-      );
-
-      let newContacts: LocalContact[];
-
-      if (firstEmptyIndex !== -1) {
-        newContacts = contacts.map((contact, index) =>
-          index === firstEmptyIndex
-            ? {
-                ...contact,
-                name: firstName,
-                surname: lastName,
-                phone: phoneNumber,
-                email: emailAddress,
-              }
-            : contact,
-        );
-      } else {
-        if (contacts.length >= 5) {
-          showError("You can add up to 5 emergency contacts.");
-          return;
-        }
-
-        newContacts = [
-          ...contacts,
-          {
-            id: Date.now().toString(),
-            name: firstName,
-            surname: lastName,
-            phone: phoneNumber,
-            email: emailAddress,
-            relationship: "",
-            isPrimary: false,
-          },
-        ];
-      }
-
-      setContacts(newContacts);
-
-      void Haptics.impactAsync(
-        Haptics.ImpactFeedbackStyle.Light,
-      );
-
-      checkValidContacts(newContacts);
-      clearError();
+      void Haptics.selectionAsync().catch(() => {});
     } catch (err) {
-      console.error("Failed to import contact:", err);
-
       showError(
-        "Failed to import contact. Please try again or add it manually.",
+        err instanceof Error
+          ? err.message
+          : "Could not finish Secure Escape setup. Please try again."
       );
+    } finally {
+      busyRef.current = false;
+      setIsSkipping(false);
     }
+  };
+
+  const handleSkip = () => {
+    if (isBusy) return;
+
+    if (contacts.length === 0) {
+      void performSkip();
+      return;
+    }
+
+    Alert.alert(
+      "Skip emergency contacts?",
+      "Your unsaved contact details will not be added. You can add a safety contact later.",
+      [
+        {
+          text: "Keep editing",
+          style: "cancel",
+        },
+        {
+          text: "Skip for now",
+          onPress: () => {
+            void performSkip();
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: "#fff" }}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      <LinearGradient
-        colors={["#5B8DEF", "#6C63FF"]}
-        style={styles.gradientHeader}
+    <View style={styles.screen}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={PURPLE}
+      />
+
+      {/* ONBOARDING HEADER */}
+
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 4,
+          },
+        ]}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          disabled={isSaving}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Emergency Contact</Text>
-      </LinearGradient>
-
-      <View style={styles.whiteCard}>
-        <Text style={styles.mainTitle}>
-          Add a Safety Contact
-        </Text>
-
-        <Text style={styles.sub}>
-          {isOnboarding
-            ? "Add at least one trusted contact to complete your Secure Escape setup."
-            : "Add someone you trust who can be notified when your duress PIN is used."}
-        </Text>
-
-        <TouchableOpacity
-          onPress={openInfoModal}
-          disabled={isSaving}
-        >
-          <Text style={styles.link}>
-            Why add a safety contact?
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.noteBox}>
-          <Ionicons
-            name="alert-circle-outline"
-            size={20}
-            color={colors.primary}
-            style={styles.noteIcon}
-          />
-
-          <Text style={styles.noteText}>
-            <Text style={styles.boldText}>
-              Only add someone you trust completely
-            </Text>
-            {" — "}
-            this contact may receive a notification when a duress
-            incident is triggered.
-          </Text>
-        </View>
-
-        {contacts.map((contact, index) => (
-          <View key={contact.id} style={styles.contactCard}>
-            <View style={styles.contactHeader}>
-              <Text style={styles.contactTitle}>
-                Contact {index + 1}
-              </Text>
-
-              {contacts.length > 1 && (
-                <TouchableOpacity
-                  onPress={() => removeContact(contact.id)}
-                  style={styles.deleteButton}
-                  disabled={isSaving}
-                >
-                  <Ionicons
-                    name="trash-outline"
-                    size={20}
-                    color={colors.danger}
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>Name</Text>
-              <TextInput
-                style={styles.input}
-                value={contact.name}
-                onChangeText={(text) =>
-                  updateContact(contact.id, "name", text)
-                }
-                maxLength={50}
-                placeholder="First name"
-                placeholderTextColor="#aaa"
-                editable={!isSaving}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>Surname</Text>
-              <TextInput
-                style={styles.input}
-                value={contact.surname}
-                onChangeText={(text) =>
-                  updateContact(contact.id, "surname", text)
-                }
-                maxLength={50}
-                placeholder="Last name"
-                placeholderTextColor="#aaa"
-                editable={!isSaving}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>Phone Number</Text>
-              <TextInput
-                style={styles.input}
-                value={contact.phone}
-                onChangeText={(text) =>
-                  updateContact(contact.id, "phone", text)
-                }
-                maxLength={30}
-                keyboardType="phone-pad"
-                placeholder="+27 XX XXX XXXX"
-                placeholderTextColor="#aaa"
-                editable={!isSaving}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                value={contact.email}
-                onChangeText={(text) =>
-                  updateContact(contact.id, "email", text)
-                }
-                maxLength={254}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="name@example.com"
-                placeholderTextColor="#aaa"
-                editable={!isSaving}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>Relationship</Text>
-              <TextInput
-                style={styles.input}
-                value={contact.relationship}
-                onChangeText={(text) =>
-                  updateContact(
-                    contact.id,
-                    "relationship",
-                    text,
-                  )
-                }
-                maxLength={50}
-                placeholder="e.g. Mother, Friend"
-                placeholderTextColor="#aaa"
-                editable={!isSaving}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.primaryRow}
-              onPress={() =>
-                updateContact(
-                  contact.id,
-                  "isPrimary",
-                  !contact.isPrimary,
-                )
-              }
-              disabled={isSaving}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  contact.isPrimary && styles.checked,
-                ]}
-              >
-                {contact.isPrimary && (
-                  <Ionicons
-                    name="checkmark"
-                    size={14}
-                    color="#fff"
-                  />
-                )}
-              </View>
-
-              <Text style={styles.checkLabel}>
-                Set as primary contact
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-
-        <TouchableOpacity
-          style={styles.importButton}
-          onPress={importFromContacts}
-          disabled={isSaving}
-        >
-          <Ionicons
-            name="phone-portrait-outline"
-            size={22}
-            color={colors.primary}
-          />
-
-          <Text style={styles.importButtonText}>
-            Import from Contacts
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={addContact}
-          disabled={isSaving}
-        >
-          <Ionicons
-            name="add-circle-outline"
-            size={22}
-            color={colors.primary}
-          />
-
-          <Text style={styles.addButtonText}>
-            Add Another Contact
-          </Text>
-        </TouchableOpacity>
-
-        <ErrorBanner
-          message={error}
-          onPress={() => setShowErrorModal(true)}
-        />
-
-        <View style={styles.buttonsRow}>
+        <View style={styles.topBar}>
           <TouchableOpacity
-            style={[
-              styles.actionButtonWrapper,
-              (!validContactAdded || isSaving) &&
-                styles.disabledWrapper,
-            ]}
-            onPress={() => {
-              if (validContactAdded && !isSaving) {
-                animateButton(buttonScale);
-                void handleAddContact();
-              } else if (!isSaving) {
-                void Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Error,
-                );
-              }
-            }}
-            disabled={!validContactAdded || isSaving}
-            activeOpacity={0.8}
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
-            <Animated.View
-              style={{
-                transform: [{ scale: buttonScale }],
-                width: "100%",
-              }}
-            >
-              <LinearGradient
-                colors={
-                  validContactAdded && !isSaving
-                    ? ["#25145F", "#25145F"]
-                    : ["#ccc", "#ccc"]
-                }
-                style={styles.gradientButton}
-              >
-                {isSaving ? (
-                  <View style={styles.savingRow}>
-                    <ActivityIndicator
-                      size="small"
-                      color="#fff"
-                    />
-
-                    <Text style={styles.buttonText}>
-                      {isOnboarding
-                        ? "Activating..."
-                        : "Saving..."}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={styles.buttonText}>
-                    {isOnboarding
-                      ? "Complete Setup"
-                      : "Add Contact"}
-                  </Text>
-                )}
-              </LinearGradient>
-            </Animated.View>
+            <Ionicons
+              name="arrow-back"
+              size={21}
+              color={WHITE}
+            />
           </TouchableOpacity>
 
-          {!isOnboarding && (
-            <TouchableOpacity
-              style={styles.skipButton}
-              onPress={() => {
-                animateButton(skipScale);
-                handleSkip();
-              }}
-              disabled={isSaving}
-              activeOpacity={0.7}
-            >
-              <Animated.View
-                style={{
-                  transform: [{ scale: skipScale }],
-                  width: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <Text style={styles.skipButtonText}>
-                  Cancel
-                </Text>
-              </Animated.View>
-            </TouchableOpacity>
-          )}
+          <Text style={styles.topBarTitle}>
+            Secure Escape
+          </Text>
+
+          <View style={styles.topBarSpacer} />
+        </View>
+
+        <View style={styles.headerContent}>
+          <View style={styles.stepRow}>
+            <View style={styles.stepPill}>
+              <Text style={styles.stepPillText}>
+                STEP 04
+              </Text>
+            </View>
+
+            <Text style={styles.stepCaption}>
+              PROTECTION SETUP
+            </Text>
+          </View>
+
+          <Text style={styles.headerTitle}>
+            Add a safety contact
+          </Text>
+
+          <Text style={styles.headerDescription}>
+            If you ever use your duress PIN, we
+            can silently notify someone you trust —
+            without alerting the attacker.
+          </Text>
         </View>
       </View>
+
+      <KeyboardAvoidingView
+        style={styles.contentArea}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : undefined
+        }
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={
+            styles.scrollContent
+          }
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* HELP */}
+
+          <TouchableOpacity
+            style={styles.helpLink}
+            onPress={() =>
+              setInfoModalVisible(true)
+            }
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              color={PURPLE}
+            />
+
+            <Text style={styles.helpLinkText}>
+              Why add a safety contact?
+            </Text>
+
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={PURPLE}
+            />
+          </TouchableOpacity>
+
+          {/* TRUST NOTE */}
+
+          <View style={styles.noticeCard}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={19}
+              color={PURPLE}
+            />
+
+            <Text style={styles.noticeText}>
+              <Text style={styles.noticeBold}>
+                Only add someone you trust completely
+              </Text>
+              {" — "}
+              they will be notified in an emergency.
+            </Text>
+          </View>
+
+          {/* PRIMARY IMPORT ACTION */}
+
+          <TouchableOpacity
+            style={[
+              styles.importCard,
+              isBusy && styles.disabledAction,
+            ]}
+            onPress={importFromContacts}
+            disabled={isBusy}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Import from Contacts"
+          >
+            <View style={styles.importIcon}>
+              <Ionicons
+                name="people-outline"
+                size={25}
+                color={WHITE}
+              />
+            </View>
+
+            <View style={styles.importCopy}>
+              <Text style={styles.importTitle}>
+                Import from Contacts
+              </Text>
+
+              <Text style={styles.importDescription}>
+                Choose someone from your phone.
+              </Text>
+            </View>
+
+            {isImporting ? (
+              <ActivityIndicator
+                color={WHITE}
+                size="small"
+              />
+            ) : (
+              <Ionicons
+                name="arrow-forward"
+                size={19}
+                color={WHITE}
+              />
+            )}
+          </TouchableOpacity>
+
+          {/* SECONDARY MANUAL ACTION */}
+
+          <TouchableOpacity
+            style={styles.manualLink}
+            onPress={addManualContact}
+            disabled={isBusy}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="add-circle-outline"
+              size={19}
+              color={PURPLE}
+            />
+
+            <Text style={styles.manualLinkText}>
+              Add manually
+            </Text>
+          </TouchableOpacity>
+
+          {/* CONTACT FORMS APPEAR ON DEMAND */}
+
+          {hasContacts && (
+            <View style={styles.contactSection}>
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sectionTitle}>
+                  Your safety contacts
+                </Text>
+
+                <Text style={styles.sectionCount}>
+                  {contacts.length}/{MAX_CONTACTS}
+                </Text>
+              </View>
+
+              {contacts.map(
+                (contact, index) => (
+                  <View
+                    key={contact.id}
+                    style={styles.contactCard}
+                  >
+                    <View
+                      style={styles.contactHeader}
+                    >
+                      <View
+                        style={
+                          styles.contactHeaderLeft
+                        }
+                      >
+                        <View
+                          style={
+                            styles.contactNumber
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.contactNumberText
+                            }
+                          >
+                            {index + 1}
+                          </Text>
+                        </View>
+
+                        <View>
+                          <Text
+                            style={
+                              styles.contactTitle
+                            }
+                          >
+                            Contact {index + 1}
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.contactSubtitle
+                            }
+                          >
+                            {contact.isPrimary
+                              ? "Primary contact"
+                              : "Safety contact"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() =>
+                          removeContact(contact.id)
+                        }
+                        disabled={isBusy}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove contact ${
+                          index + 1
+                        }`}
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={18}
+                          color={RED}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.nameRow}>
+                      <View
+                        style={styles.nameColumn}
+                      >
+                        <ContactField
+                          label="Name"
+                          placeholder="First name"
+                          value={contact.name}
+                          onChangeText={(text) =>
+                            updateContact(
+                              contact.id,
+                              "name",
+                              text
+                            )
+                          }
+                          editable={!isBusy}
+                          maxLength={50}
+                        />
+                      </View>
+
+                      <View
+                        style={styles.nameColumn}
+                      >
+                        <ContactField
+                          label="Surname"
+                          placeholder="Last name"
+                          value={contact.surname}
+                          onChangeText={(text) =>
+                            updateContact(
+                              contact.id,
+                              "surname",
+                              text
+                            )
+                          }
+                          editable={!isBusy}
+                          maxLength={50}
+                        />
+                      </View>
+                    </View>
+
+                    <ContactField
+                      label="Phone Number"
+                      placeholder="+27 XX XXX XXXX"
+                      value={contact.phone}
+                      onChangeText={(text) =>
+                        updateContact(
+                          contact.id,
+                          "phone",
+                          text
+                        )
+                      }
+                      editable={!isBusy}
+                      maxLength={30}
+                      keyboardType="phone-pad"
+                    />
+
+                    <ContactField
+                      label="Email Address"
+                      placeholder="name@example.com"
+                      value={contact.email}
+                      onChangeText={(text) =>
+                        updateContact(
+                          contact.id,
+                          "email",
+                          text
+                        )
+                      }
+                      editable={!isBusy}
+                      maxLength={254}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+
+                    <ContactField
+                      label="Relationship"
+                      placeholder="e.g. Mother, Friend"
+                      value={contact.relationship}
+                      onChangeText={(text) =>
+                        updateContact(
+                          contact.id,
+                          "relationship",
+                          text
+                        )
+                      }
+                      editable={!isBusy}
+                      maxLength={50}
+                    />
+
+                    <TouchableOpacity
+                      style={styles.primaryRow}
+                      onPress={() =>
+                        selectPrimary(contact.id)
+                      }
+                      disabled={isBusy}
+                      activeOpacity={0.7}
+                      accessibilityRole="radio"
+                      accessibilityState={{
+                        checked: contact.isPrimary,
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          contact.isPrimary
+                            ? "radio-button-on"
+                            : "radio-button-off"
+                        }
+                        size={20}
+                        color={
+                          contact.isPrimary
+                            ? PURPLE
+                            : colors.textSub
+                        }
+                      />
+
+                      <Text
+                        style={styles.primaryText}
+                      >
+                        Set as primary contact
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+
+              {!canAddMore && (
+                <Text style={styles.limitText}>
+                  You can add up to 5 emergency
+                  contacts.
+                </Text>
+              )}
+            </View>
+          )}
+
+          <ErrorBanner
+            message={error}
+            onPress={() =>
+              setShowErrorModal(true)
+            }
+          />
+        </ScrollView>
+
+        {/* FIXED BOTTOM ACTION */}
+
+        <View
+          style={[
+            styles.bottomArea,
+            {
+              paddingBottom: Math.max(
+                insets.bottom,
+                14
+              ),
+            },
+          ]}
+        >
+          {hasContacts && (
+            <TouchableOpacity
+              style={[
+                styles.continueButton,
+                isBusy && styles.disabledAction,
+              ]}
+              onPress={handleSaveContacts}
+              disabled={isBusy}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+            >
+              {isSaving ? (
+                <ActivityIndicator
+                  color={WHITE}
+                />
+              ) : (
+                <>
+                  <Text
+                    style={
+                      styles.continueText
+                    }
+                  >
+                    Save contacts & continue
+                  </Text>
+
+                  <Ionicons
+                    name="arrow-forward"
+                    size={18}
+                    color={WHITE}
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={handleSkip}
+            disabled={isBusy}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            {isSkipping ? (
+              <ActivityIndicator
+                color={PURPLE}
+                size="small"
+              />
+            ) : (
+              <Text style={styles.skipText}>
+                Skip for now
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.bottomNote}>
+            Next: Complete your Secure Escape setup
+          </Text>
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* ERROR MODAL */}
 
       <ErrorModal
         title="Emergency contact"
         message={error}
         visible={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
+        onClose={() =>
+          setShowErrorModal(false)
+        }
       />
+
+      {/* INFORMATION BOTTOM SHEET */}
 
       <Modal
         transparent
         visible={infoModalVisible}
-        animationType="none"
-        onRequestClose={closeInfoModal}
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() =>
+          setInfoModalVisible(false)
+        }
       >
-        <TouchableWithoutFeedback onPress={closeInfoModal}>
-          <Animated.View
+        <View style={styles.modalRoot}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() =>
+              setInfoModalVisible(false)
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Close safety contact information"
+          />
+
+          <View
             style={[
-              styles.modalOverlay,
-              { opacity: infoFadeAnim },
+              styles.modalSheet,
+              {
+                paddingBottom: Math.max(
+                  insets.bottom,
+                  20
+                ),
+              },
             ]}
           >
-            <TouchableWithoutFeedback>
-              <Animated.View
-                style={[
-                  styles.modalCard,
-                  {
-                    transform: [
-                      { scale: infoScaleAnim },
-                    ],
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={closeInfoModal}
-                >
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={colors.navy}
-                  />
-                </TouchableOpacity>
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderIcon}>
+                <Ionicons
+                  name="people-outline"
+                  size={21}
+                  color={PURPLE}
+                />
+              </View>
+
+              <View style={styles.modalHeaderCopy}>
+                <Text style={styles.modalEyebrow}>
+                  SECURE ESCAPE
+                </Text>
 
                 <Text style={styles.modalTitle}>
                   Why add a safety contact?
                 </Text>
+              </View>
 
-                <View style={styles.bulletList}>
-                  <InfoItem text="A trusted contact can be notified when your duress PIN triggers a Secure Escape incident." />
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() =>
+                  setInfoModalVisible(false)
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={colors.navy}
+                />
+              </TouchableOpacity>
+            </View>
 
-                  <InfoItem text="When location information is available for the incident, it can help the Secure Escape response workflow." />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalContent}
+            >
+              <InfoPoint>
+                Your safety contact will receive a
+                silent SMS if your duress PIN is ever
+                used. It will include your last known
+                location so they can alert authorities
+                if needed.
+              </InfoPoint>
 
-                  <InfoItem text="The banking experience remains discreet while the duress response runs in the background." />
+              <InfoPoint>
+                Attackers will see{" "}
+                <Text style={styles.bold}>
+                  NO indication on your phone
+                </Text>
+                . The SMS is sent silently in the
+                background.
+              </InfoPoint>
 
-                  <InfoItem text="You can manage your emergency contacts later through Secure Escape settings." />
-                </View>
-              </Animated.View>
-            </TouchableWithoutFeedback>
-          </Animated.View>
-        </TouchableWithoutFeedback>
+              <InfoPoint>
+                You are in control. You can add,
+                change, or remove this contact at
+                any time through the app.
+              </InfoPoint>
+
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() =>
+                  setInfoModalVisible(false)
+                }
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalButtonText}>
+                  Got it
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
-function InfoItem({ text }: { text: string }) {
+function ContactField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  editable,
+  maxLength,
+  keyboardType,
+  autoCapitalize,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder: string;
+  editable: boolean;
+  maxLength: number;
+  keyboardType?: "phone-pad" | "email-address";
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+}) {
   return (
-    <View style={styles.bulletItem}>
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>
+        {label}
+      </Text>
+
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#A09EAE"
+        editable={editable}
+        maxLength={maxLength}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={false}
+        accessibilityLabel={label}
+      />
+    </View>
+  );
+}
+
+function InfoPoint({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.infoPoint}>
       <Ionicons
-        name="checkmark-circle"
-        size={20}
-        color={colors.primary}
+        name="checkmark-circle-outline"
+        size={19}
+        color={PURPLE}
+        style={styles.infoPointIcon}
       />
 
-      <Text style={styles.bulletText}>{text}</Text>
+      <Text style={styles.infoPointText}>
+        {children}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    paddingBottom: 40,
+  screen: {
+    flex: 1,
+    backgroundColor: BACKGROUND,
   },
 
-  gradientHeader: {
-    paddingTop: 65,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
+  // HEADER
+
+  header: {
+    backgroundColor: PURPLE,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
+    overflow: "hidden",
+  },
+
+  topBar: {
+    height: 42,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    paddingHorizontal: 20,
+  },
+
+  backButton: {
+    width: 44,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: -8,
+  },
+
+  topBarTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 15,
+    fontWeight: "700",
+    color: WHITE,
+  },
+
+  topBarSpacer: {
+    width: 44,
+  },
+
+  headerContent: {
+    paddingHorizontal: 22,
+    paddingTop: 9,
+    paddingBottom: 16,
+  },
+
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    marginBottom: 8,
+  },
+
+  stepPill: {
+    backgroundColor:
+      "rgba(255,255,255,0.14)",
+    borderRadius: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+
+  stepPillText: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    color: WHITE,
+  },
+
+  stepCaption: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    color: MUTED_PURPLE,
   },
 
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#fff",
-  },
-
-  whiteCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    marginTop: -16,
-  },
-
-  mainTitle: {
     fontSize: 24,
     fontWeight: "800",
-    color: colors.primary,
-    marginBottom: 6,
+    letterSpacing: -0.5,
+    lineHeight: 30,
+    color: WHITE,
   },
 
-  sub: {
-    fontSize: 14,
-    color: colors.textSub,
-    marginBottom: 4,
-    lineHeight: 20,
+  headerDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#E4E1FF",
+    marginTop: 5,
   },
 
-  link: {
-    fontSize: 13,
-    color: colors.primary,
-    textDecorationLine: "underline",
-    marginVertical: 8,
-  },
+  // CONTENT
 
-  noteBox: {
-    flexDirection: "row",
-    backgroundColor: "#F5F3FF",
-    padding: 14,
-    borderRadius: 12,
-    marginVertical: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-  },
-
-  noteIcon: {
-    marginRight: 10,
-    marginTop: 1,
-  },
-
-  noteText: {
-    fontSize: 13,
-    color: "#444",
-    lineHeight: 20,
+  contentArea: {
     flex: 1,
   },
 
-  boldText: {
-    fontWeight: "700",
+  scrollView: {
+    flex: 1,
   },
 
-  primaryRow: {
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 18,
+  },
+
+  helpLink: {
+    minHeight: 37,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginTop: 4,
+    justifyContent: "center",
+    gap: 7,
+    marginBottom: 7,
   },
 
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: colors.greyLine,
-    borderRadius: 5,
-    backgroundColor: "#fff",
+  helpLinkText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: PURPLE,
+  },
+
+  // NOTE
+
+  noticeCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: PALE_PURPLE,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    gap: 9,
+    marginBottom: 15,
+  },
+
+  noticeText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 17,
+    color: colors.textSub,
+  },
+
+  noticeBold: {
+    fontWeight: "800",
+    color: colors.navy,
+  },
+
+  // IMPORT
+
+  importCard: {
+    minHeight: 92,
+    backgroundColor: PURPLE,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    gap: 13,
+  },
+
+  importIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    backgroundColor:
+      "rgba(255,255,255,0.13)",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  checked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  importCopy: {
+    flex: 1,
   },
 
-  checkLabel: {
+  importTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: WHITE,
+  },
+
+  importDescription: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: "#E4E1FF",
+    marginTop: 4,
+  },
+
+  disabledAction: {
+    opacity: 0.6,
+  },
+
+  manualLink: {
+    minHeight: 49,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 7,
+  },
+
+  manualLinkText: {
     fontSize: 13,
+    fontWeight: "700",
+    color: PURPLE,
+  },
+
+  // CONTACT SECTION
+
+  contactSection: {
+    marginTop: 15,
+  },
+
+  sectionHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 11,
+  },
+
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: colors.navy,
+  },
+
+  sectionCount: {
+    fontSize: 11,
+    fontWeight: "700",
     color: colors.textSub,
   },
 
   contactCard: {
-    backgroundColor: colors.white,
-    borderRadius: 20,
+    backgroundColor: WHITE,
     borderWidth: 1,
-    borderColor: colors.greyLine,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: LINE,
+    borderRadius: 15,
+    padding: 14,
+    marginBottom: 12,
   },
 
   contactHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+
+  contactHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  contactNumber: {
+    width: 35,
+    height: 35,
+    borderRadius: 10,
+    backgroundColor: PALE_PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  contactNumberText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: PURPLE,
   },
 
   contactTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "800",
     color: colors.navy,
   },
 
-  deleteButton: {
-    padding: 4,
+  contactSubtitle: {
+    fontSize: 10,
+    color: colors.textSub,
+    marginTop: 2,
+  },
+
+  removeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#FFF1F2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  nameRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  nameColumn: {
+    flex: 1,
+    minWidth: 0,
   },
 
   field: {
-    marginBottom: 16,
+    marginBottom: 13,
   },
 
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: "700",
     color: colors.navy,
     marginBottom: 6,
   },
 
   input: {
-    borderWidth: 1.5,
-    borderColor: colors.greyLine,
-    borderRadius: 14,
-    padding: 12,
-    fontSize: 15,
-    backgroundColor: "#FAFAFA",
-  },
-
-  importButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    marginBottom: 12,
-    backgroundColor: "#F0EFFF",
-    borderRadius: 40,
-  },
-
-  importButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    marginBottom: 12,
+    minHeight: 44,
     borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 40,
-    borderStyle: "dashed",
+    borderColor: LINE,
+    borderRadius: 10,
+    backgroundColor: BACKGROUND,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: colors.navy,
   },
 
-  addButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-
-  buttonsRow: {
+  primaryRow: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
+    alignItems: "center",
+    gap: 9,
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+    paddingTop: 13,
+    marginTop: 1,
+  },
+
+  primaryText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.navy,
+  },
+
+  limitText: {
+    fontSize: 11,
+    color: colors.textSub,
+    textAlign: "center",
+    marginTop: 3,
+  },
+
+  // BOTTOM ACTION
+
+  bottomArea: {
+    backgroundColor: BACKGROUND,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+  },
+
+  continueButton: {
+    minHeight: 50,
+    borderRadius: 13,
+    backgroundColor: PURPLE,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+
+  continueText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: WHITE,
   },
 
   skipButton: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 50,
-    paddingVertical: 16,
+    minHeight: 43,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
   },
 
-  skipButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-  },
-
-  actionButtonWrapper: {
-    flex: 2,
-    borderRadius: 50,
-    overflow: "hidden",
-  },
-
-  disabledWrapper: {
-    opacity: 0.6,
-  },
-
-  gradientButton: {
-    paddingVertical: 16,
-    alignItems: "center",
-    width: "100%",
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
+  skipText: {
+    fontSize: 13,
     fontWeight: "700",
-    letterSpacing: 0.5,
+    color: PURPLE,
   },
 
-  savingRow: {
+  bottomNote: {
+    fontSize: 11,
+    color: colors.textSub,
+    textAlign: "center",
+    marginTop: 1,
+  },
+
+  // INFORMATION SHEET
+
+  modalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+
+  modalBackdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(15,23,42,0.52)",
+  },
+
+  modalSheet: {
+    maxHeight: "86%",
+    backgroundColor: WHITE,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+  },
+
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: LINE,
+    alignSelf: "center",
+    marginBottom: 17,
+  },
+
+  modalHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
     paddingHorizontal: 20,
+    gap: 11,
   },
 
-  modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 24,
-    width: "100%",
-    maxWidth: 360,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
+  modalHeaderIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: PALE_PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  closeButton: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    padding: 4,
-    zIndex: 1,
+  modalHeaderCopy: {
+    flex: 1,
+  },
+
+  modalEyebrow: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: colors.textSub,
+    letterSpacing: 0.7,
+    marginBottom: 4,
   },
 
   modalTitle: {
-    fontSize: 22,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "800",
     color: colors.navy,
-    marginBottom: 14,
-    letterSpacing: 0.5,
   },
 
-  bulletList: {
-    marginBottom: 8,
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: BACKGROUND,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  bulletItem: {
+  modalContent: {
+    paddingHorizontal: 20,
+    paddingTop: 19,
+    paddingBottom: 24,
+  },
+
+  infoPoint: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 14,
+    gap: 10,
+    marginBottom: 17,
   },
 
-  bulletText: {
-    fontSize: 14,
-    color: "#444",
-    lineHeight: 20,
-    marginLeft: 10,
+  infoPointIcon: {
+    marginTop: 1,
+  },
+
+  infoPointText: {
     flex: 1,
+    fontSize: 12,
+    lineHeight: 19,
+    color: colors.textSub,
+  },
+
+  bold: {
+    fontWeight: "700",
+    color: colors.navy,
+  },
+
+  modalButton: {
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 14,
+  },
+
+  modalButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: WHITE,
   },
 });
