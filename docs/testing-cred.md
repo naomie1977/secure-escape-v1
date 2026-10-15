@@ -18,6 +18,47 @@ This document contains the default testing credentials for the Secure Escape mob
 
 ---
 
+# New Test Users (Standard, Student, and High-Net-Worth)
+
+### Standard Accounts (Decent Balances)
+| Name | Email | Password |
+|------|-------|----------|
+| Tebogo Moremi | tebogo.moremi@email.co.za | 1001 |
+| Khanyisile Sithole | khanyisile.sithole@email.co.za | 1002 |
+| Jabulani Dlamini | jabulani.dlamini@email.co.za | 1003 |
+| Lerato Khanyile | lerato.khanyile@email.co.za | 1004 |
+| Simphiwe Buthelezi | simphiwe.buthelezi@email.co.za | 1005 |
+| Boitumelo Phiri | boitumelo.phiri@email.co.za | 1006 |
+| Nhlanhla Mabena | nhlanhla.mabena@email.co.za | 1007 |
+| Dineo Motsepe | dineo.motsepe@email.co.za | 1008 |
+| Katlego Chauke | katlego.chauke@email.co.za | 1009 |
+| Sinenhlanhla Zulu | sinenhlanhla.zulu@email.co.za | 1010 |
+
+### Student Accounts (R2k - R4k Balances)
+| Name | Email | Password |
+|------|-------|----------|
+| Thato Moloi | thato.moloi@email.co.za | 1011 |
+| Lesego Tau | lesego.tau@email.co.za | 1012 |
+| Ntando Gumede | ntando.gumede@email.co.za | 1013 |
+| Kagiso Matlala | kagiso.matlala@email.co.za | 1014 |
+| Anele Mtshali | anele.mtshali@email.co.za | 1015 |
+
+### Extremely Rich Accounts (R5,000,000+ for Realistic Decoy)
+| Name | Email | Password |
+|------|-------|----------|
+| Patrice Radebe | patrice.radebe@email.co.za | 2001 |
+| Khulubuse Mthembu | khulubuse.mthembu@email.co.za | 2002 |
+| Bridgette Mabandla | bridgette.mabandla@email.co.za | 2003 |
+| Johann Van Der Merwe | johann.vandermerwe@email.co.za | 2004 |
+| Nonkululeko Nyembezi | nonkululeko.nyembezi@email.co.za | 2005 |
+| Tokyo Sexwale | tokyo.sexwale@email.co.za | 2006 |
+| Phuthuma Nhleko | phuthuma.nhleko@email.co.za | 2007 |
+| Wendy Luhabe | wendy.luhabe@email.co.za | 2008 |
+| Sipho Pityana | sipho.pityana@email.co.za | 2009 |
+| Irene Charnley | irene.charnley@email.co.za | 2010 |
+
+---
+
 # Fraud Dashboard Administrators
 
 **Default Password:** `Admin@123`
