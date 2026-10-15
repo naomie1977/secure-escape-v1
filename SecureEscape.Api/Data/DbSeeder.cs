@@ -590,7 +590,7 @@ namespace SecureEscape.Api.Data
                     UserId = userId,
                     PasswordHash = Hash(item.Pwd),
                     NormalPinHash = Hash(item.Pwd),
-                    DuressPinHash = Hash("9999"),
+                    DuressPinHash = string.Empty,
                     CreatedAt = DateTime.UtcNow
                 };
 
